@@ -1001,5 +1001,130 @@ viewFO46 = function(andId,foId,print=false){
 })();
 
 </script>
+
+<style>
+#diagFab{position:fixed;right:14px;bottom:92px;z-index:99999;border:0;border-radius:999px;background:#0f172a;color:#fff;font-weight:950;padding:12px 14px;box-shadow:0 14px 34px rgba(15,23,42,.28)}
+#diagPanel{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100000;display:none;align-items:flex-end;justify-content:center;padding:0}
+#diagPanel.show{display:flex}.diagCard{width:100%;max-width:820px;max-height:88vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.25);border:1px solid #e5e7eb}.diagHead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #e5e7eb}.diagHead h3{margin:0;font-size:20px}.diagBody{padding:16px 18px}.diagGrid{display:grid;grid-template-columns:1fr;gap:9px}.diagRow{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:start;border:1px solid #e5e7eb;border-radius:14px;padding:10px;background:#f8fafc}.diagRow b{font-size:12px;text-transform:uppercase;color:#475467}.diagOk{color:#166534;font-weight:950}.diagBad{color:#991b1b;font-weight:950}.diagWarn{color:#9a3412;font-weight:950}.diagLog{background:#0f172a;color:#e5e7eb;border-radius:14px;padding:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;white-space:pre-wrap;max-height:260px;overflow:auto}.diagActions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.diagActions button{border:0;border-radius:13px;padding:11px 13px;font-weight:950;background:#eff6ff;color:#1d4ed8}.diagActions button.dark{background:#0f172a;color:#fff}.diagActions button.danger{background:#fef2f2;color:#991b1b}.diagSmall{font-size:12px;color:#667085;line-height:1.35}.versionChip{position:fixed;left:10px;bottom:10px;z-index:99998;background:rgba(15,23,42,.82);color:#fff;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:900;pointer-events:none}
+@media(min-width:900px){#diagPanel{align-items:center;padding:18px}.diagCard{border-radius:24px;max-height:92vh}.diagGrid{grid-template-columns:1fr 1fr}.diagRow.full{grid-column:1/-1}#diagFab{bottom:24px}.versionChip{bottom:8px}}
+</style>
+<button id="diagFab" type="button">🧪 Diagnóstico</button>
+<div class="versionChip">v2.8.7 diag</div>
+<div id="diagPanel">
+  <div class="diagCard">
+    <div class="diagHead">
+      <div><h3>Diagnóstico de conexión</h3><div class="diagSmall">Usalo desde el celular y mandá captura del resultado.</div></div>
+      <button class="btn ghost" type="button" onclick="window.ALDiag.close()">Cerrar</button>
+    </div>
+    <div class="diagBody">
+      <div class="diagActions">
+        <button class="dark" type="button" onclick="window.ALDiag.run()">Probar conexión</button>
+        <button type="button" onclick="window.ALDiag.copy()">Copiar log</button>
+        <button class="danger" type="button" onclick="window.ALDiag.clearLocal()">Limpiar datos locales</button>
+      </div>
+      <div id="diagResults" class="diagGrid"></div>
+      <h4>Log</h4>
+      <div id="diagLog" class="diagLog">Listo para probar...</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const VERSION='v2.8.7 Diagnóstico móvil';
+  const WEBAPP_URL='https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
+  const panel=document.getElementById('diagPanel');
+  const fab=document.getElementById('diagFab');
+  const results=document.getElementById('diagResults');
+  const logBox=document.getElementById('diagLog');
+  let logs=[];
+  function now(){return new Date().toLocaleTimeString();}
+  function log(msg){logs.push(now()+'  '+msg); logBox.textContent=logs.join('\n'); logBox.scrollTop=logBox.scrollHeight;}
+  function row(name,value,status=''){
+    const cls=status==='ok'?'diagOk':status==='bad'?'diagBad':status==='warn'?'diagWarn':'';
+    return `<div class="diagRow"><b>${name}</b><div class="${cls}">${value}</div></div>`;
+  }
+  function setRows(html){results.innerHTML=html;}
+  function jsonp(action, params={}, timeoutMs=12000){
+    return new Promise((resolve,reject)=>{
+      const cb='diag_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const s=document.createElement('script');
+      const timer=setTimeout(()=>{cleanup(); reject(new Error('Timeout '+action));},timeoutMs);
+      function cleanup(){clearTimeout(timer); try{delete window[cb]}catch(e){} try{s.remove()}catch(e){}}
+      window[cb]=function(res){cleanup(); resolve(res);};
+      s.onerror=function(){cleanup(); reject(new Error('No cargó script JSONP '+action));};
+      const q=new URLSearchParams({action,callback:cb,_:Date.now(),...params});
+      s.src=WEBAPP_URL+'?'+q.toString();
+      document.body.appendChild(s);
+    });
+  }
+  async function run(){
+    logs=[]; logBox.textContent='';
+    log('Iniciando diagnóstico '+VERSION);
+    const base=[];
+    base.push(row('Versión',VERSION,'ok'));
+    base.push(row('URL actual',location.href,'ok'));
+    base.push(row('Online',navigator.onLine?'Sí':'No',navigator.onLine?'ok':'bad'));
+    base.push(row('Navegador',navigator.userAgent,'ok'));
+    base.push(row('Origen',location.origin,'ok'));
+    base.push(row('Protocolo',location.protocol,location.protocol==='https:'?'ok':'warn'));
+    base.push(row('LocalStorage',(()=>{try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return 'Disponible'}catch(e){return 'Bloqueado'}})(), 'ok'));
+    setRows(base.join(''));
+    try{
+      log('Probando ping Apps Script...');
+      const t0=performance.now();
+      const ping=await jsonp('ping');
+      const ms=Math.round(performance.now()-t0);
+      log('Ping respuesta: '+JSON.stringify(ping));
+      base.push(row('Apps Script ping',ping&&ping.ok?'OK ('+ms+' ms)':'Respuesta inválida',ping&&ping.ok?'ok':'bad'));
+    }catch(e){log('Ping error: '+e.message);base.push(row('Apps Script ping','ERROR: '+e.message,'bad'));}
+    setRows(base.join(''));
+    try{
+      log('Probando lectura listAndamios...');
+      const t0=performance.now();
+      const res=await jsonp('listAndamios',{},20000);
+      const ms=Math.round(performance.now()-t0);
+      const count=(res&&res.andamios&&res.andamios.length)||0;
+      log('listAndamios respuesta ok='+(res&&res.ok)+' count='+count);
+      base.push(row('Google Sheets',res&&res.ok?'OK - '+count+' andamios ('+ms+' ms)':'Respuesta inválida',res&&res.ok?'ok':'bad'));
+    }catch(e){log('Sheets error: '+e.message);base.push(row('Google Sheets','ERROR: '+e.message,'bad'));}
+    setRows(base.join(''));
+    try{
+      log('Probando catálogos...');
+      const res=await jsonp('listCatalogos',{},15000);
+      const sectores=(res&&res.sectores&&res.sectores.length)||0;
+      const sup=(res&&res.supervisores&&res.supervisores.length)||0;
+      log('Catálogos sectores='+sectores+' supervisores='+sup);
+      base.push(row('Catálogos',res&&res.ok?'OK - sectores '+sectores+' / supervisores '+sup:'Respuesta inválida',res&&res.ok?'ok':'bad'));
+    }catch(e){log('Catálogos error: '+e.message);base.push(row('Catálogos','ERROR: '+e.message,'bad'));}
+    setRows(base.join(''));
+    if('serviceWorker' in navigator){
+      try{
+        const regs=await navigator.serviceWorker.getRegistrations();
+        log('Service workers: '+regs.length);
+        base.push(row('Service Worker',regs.length?regs.length+' activo(s)':'No hay','warn'));
+      }catch(e){base.push(row('Service Worker','No se pudo verificar','warn'));}
+    }else base.push(row('Service Worker','No soportado','ok'));
+    const cacheNames = ('caches' in window) ? await caches.keys().catch(()=>[]) : [];
+    base.push(row('Cache Storage',cacheNames.length?cacheNames.join(', '):'Sin caches',cacheNames.length?'warn':'ok'));
+    setRows(base.join(''));
+    log('Diagnóstico terminado');
+  }
+  async function clearLocal(){
+    if(!confirm('Esto borra sesión y datos locales de este dispositivo. No borra Sheets ni Drive. ¿Continuar?')) return;
+    try{localStorage.clear();sessionStorage.clear();}catch(e){}
+    if('caches' in window){ const ks=await caches.keys().catch(()=>[]); for(const k of ks){ await caches.delete(k).catch(()=>{}); } }
+    if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations().catch(()=>[]); for(const r of regs){ await r.unregister().catch(()=>{}); } }
+    alert('Datos locales limpiados. Cerrá y abrí nuevamente la página.');
+  }
+  async function copy(){
+    const txt='DIAGNOSTICO '+VERSION+'\n'+logs.join('\n')+'\nUA: '+navigator.userAgent+'\nURL: '+location.href;
+    try{await navigator.clipboard.writeText(txt);alert('Log copiado');}
+    catch(e){prompt('Copiá el log:',txt);}
+  }
+  window.ALDiag={open(){panel.classList.add('show');},close(){panel.classList.remove('show');},run,copy,clearLocal};
+  fab?.addEventListener('click',()=>{window.ALDiag.open();});
+})();
+</script>
+
 </body>
 </html>
