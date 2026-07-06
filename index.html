@@ -1157,7 +1157,11 @@ function aisInformeWhatsApp(){
       form.submit();
       const count=action==='replaceAndamios' ? ((payload.andamios||[]).length) : 1;
       logSync({estado:'Enviado a Google Sheets',ultimoEnvio:nowText(),enviados:(Number(getSyncLog().enviados||0)+count),pendientes:0});
-      toast(action==='replaceAndamios'?'Base enviada a Google Sheets':'Andamio enviado a Google Sheets');
+      toast(action==='replaceAndamios'?'Base enviada a Google Sheets':(action==='createDriveFoldersPending'?'Solicitud Drive enviada':'Andamio enviado a Google Sheets'));
+      if(action==='upsertAndamio'){
+        logSync({estado:'Enviado. Actualizando desde Sheets...'});
+        setTimeout(()=>{ try{ window.syncLoadFromSheets&&window.syncLoadFromSheets(); }catch(e){} },3200);
+      }
       if(onQueued)onQueued();
     }catch(err){
       logSync({estado:'Error al enviar',ultimoError:String(err&&err.message?err.message:err),pendientes:Number(getSyncLog().pendientes||0)+1});
@@ -1203,7 +1207,14 @@ function aisInformeWhatsApp(){
   };
   window.syncSendLastAndamio=function(){
     if(!db.andamios.length){toast('No hay andamios cargados');return}
-    formPostSheet('upsertAndamio',{andamio:andamioPayload(db.andamios[0])});
+    formPostSheet('upsertAndamio',{andamio:andamioPayload(db.andamios[0])},()=>setTimeout(()=>syncLoadFromSheets&&syncLoadFromSheets(),3200));
+  };
+  window.syncEnsureDriveAll=function(){
+    if(!sheetUrl()){toast('Pegá primero la URL del Web App de Google Sheets');return}
+    formPostSheet('createDriveFoldersPending',{},()=>{
+      toast('Creando carpetas Drive pendientes...');
+      setTimeout(()=>syncLoadFromSheets&&syncLoadFromSheets(),4200);
+    });
   };
 
   function statusHTML(){
@@ -1223,7 +1234,7 @@ function aisInformeWhatsApp(){
   }
   function attachConfigPanel(){
     const host=document.getElementById('view-config'); if(!host || document.getElementById('sheetSyncPanel'))return;
-    host.insertAdjacentHTML('beforeend',`<div class="card" id="sheetSyncPanel"><div class="cardHead"><h3>Vinculación Google Sheets</h3><span class="badge blue">${SYNC_VERSION}</span></div><div class="readOnlyHint">Pegá acá la URL del Web App de Apps Script. Esta versión envía los datos por POST compatible con archivo local.</div><div class="field"><label>URL Web App / Apps Script</label><input id="sheetWebAppUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" value="${sheetUrl()}"></div><div class="actions"><button class="btn ghost" onclick="saveSheetConfig()">Guardar URL</button><button class="btn warn" onclick="syncTestSheets()">Probar conexión</button><button class="btn primary" onclick="syncLoadFromSheets()">Cargar desde Sheets</button><button class="btn ok" onclick="syncSaveAllToSheets()">Enviar todo a Sheets</button><button class="btn ghost" onclick="syncSendLastAndamio()">Reenviar último andamio</button></div><div class="readOnlyHint" style="margin-top:12px">Al guardar un andamio, también se envía automáticamente a la planilla si la URL está configurada. Las fotos base64 no se guardan en Sheets; se guarda link/ID de Drive cuando exista.</div>${statusHTML()}</div>`);
+    host.insertAdjacentHTML('beforeend',`<div class="card" id="sheetSyncPanel"><div class="cardHead"><h3>Vinculación Google Sheets</h3><span class="badge blue">${SYNC_VERSION}</span></div><div class="readOnlyHint">Pegá acá la URL del Web App de Apps Script. Esta versión envía los datos por POST compatible con archivo local.</div><div class="field"><label>URL Web App / Apps Script</label><input id="sheetWebAppUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" value="${sheetUrl()}"></div><div class="actions"><button class="btn ghost" onclick="saveSheetConfig()">Guardar URL</button><button class="btn warn" onclick="syncTestSheets()">Probar conexión</button><button class="btn primary" onclick="syncLoadFromSheets()">Cargar desde Sheets</button><button class="btn ok" onclick="syncSaveAllToSheets()">Enviar todo a Sheets</button><button class="btn ghost" onclick="syncSendLastAndamio()">Reenviar último andamio</button><button class="btn warn" onclick="syncEnsureDriveAll()">Crear carpetas Drive pendientes</button></div><div class="readOnlyHint" style="margin-top:12px">Al guardar un andamio, también se envía automáticamente a la planilla si la URL está configurada. Las fotos base64 no se guardan en Sheets; se guarda link/ID de Drive cuando exista.</div>${statusHTML()}</div>`);
   }
 
   const oldRenderConfig=window.renderConfig;
