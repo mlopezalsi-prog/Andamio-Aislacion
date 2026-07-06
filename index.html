@@ -1567,6 +1567,144 @@ function aisInformeWhatsApp(){
   try{ openAndamio=window.openAndamio; }catch(e){}
 })();
 
+
+
+/* ===== V2.8.3 - GITHUB PAGES + NAVEGACION MOVIL ===== */
+(function(){
+  const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
+  const SESSION_KEY = 'al_andamios_active_session_v283';
+  const STATE_KEY = 'al_andamios_nav_state_v283';
+  let internalRouteChange = false;
+
+  function safe(fn){ try{return fn&&fn()}catch(e){ console.warn('[v2.8.3]',e); } }
+  function page(id){ return document.getElementById(id); }
+  function saveState(state){
+    const old = readState();
+    localStorage.setItem(STATE_KEY, JSON.stringify({...old, ...state, ts: Date.now()}));
+  }
+  function readState(){
+    try { return JSON.parse(localStorage.getItem(STATE_KEY)||'{}') || {}; } catch(e){ return {}; }
+  }
+  function saveSession(){
+    if(currentUser) localStorage.setItem(SESSION_KEY, JSON.stringify({id:currentUser.id, ts:Date.now()}));
+  }
+  function readSession(){
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}') || {}; } catch(e){ return {}; }
+  }
+  function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+  function forceUrl(){
+    safe(()=>{ cfg().sheetWebAppUrl = APP_SCRIPT_URL; persist(); });
+    const input = page('sheetWebAppUrl');
+    if(input) input.value = APP_SCRIPT_URL;
+  }
+  function setHash(module, view){
+    const next = module==='andamios' ? `#/andamios/${view||'andamios'}` : (module==='aislacion' ? '#/aislacion' : '#/plataformas');
+    if(location.hash !== next){ internalRouteChange = true; history.pushState({module,view}, '', next); setTimeout(()=>internalRouteChange=false,60); }
+  }
+  function showModule(module, view, fromRoute=false){
+    if(!currentUser) return;
+    saveState({module, view:view||'andamios'});
+    if(module==='andamios'){
+      page('loginPage')?.classList.add('hidden');
+      page('platformPage')?.classList.add('hidden');
+      page('aislacionPage')?.classList.add('hidden');
+      page('appPage')?.classList.remove('hidden');
+      if(fromRoute){ safe(()=>oldShowViewV283(view||'andamios')); }
+      else safe(()=>showView(view||'andamios'));
+      if(!fromRoute) setHash('andamios', view||'andamios');
+      return;
+    }
+    if(module==='aislacion'){
+      page('loginPage')?.classList.add('hidden');
+      page('platformPage')?.classList.add('hidden');
+      page('appPage')?.classList.add('hidden');
+      page('aislacionPage')?.classList.remove('hidden');
+      safe(()=>renderAislacionPage&&renderAislacionPage());
+      if(!fromRoute) setHash('aislacion');
+      return;
+    }
+    page('loginPage')?.classList.add('hidden');
+    page('appPage')?.classList.add('hidden');
+    page('aislacionPage')?.classList.add('hidden');
+    page('platformPage')?.classList.remove('hidden');
+    if(!fromRoute) setHash('platformas');
+  }
+  function routeFromHash(){
+    if(!currentUser) return;
+    const h=(location.hash||'').replace(/^#\/?/,'');
+    if(!h){ const st=readState(); return showModule(st.module||'platformas', st.view||'andamios', true); }
+    const parts=h.split('/').filter(Boolean);
+    if(parts[0]==='andamios') return showModule('andamios', parts[1]||'andamios', true);
+    if(parts[0]==='aislacion') return showModule('aislacion', '', true);
+    return showModule('platformas', '', true);
+  }
+  function autoSyncOnce(){
+    forceUrl();
+    setTimeout(()=>safe(()=>window.syncLoadCatalogs&&window.syncLoadCatalogs()), 500);
+    setTimeout(()=>safe(()=>window.syncLoadFromSheets&&window.syncLoadFromSheets()), 1100);
+  }
+
+  const oldLoginV283 = window.login || login;
+  window.login = function(){
+    oldLoginV283();
+    if(currentUser){
+      saveSession(); forceUrl(); saveState({module:'platformas', view:'andamios'}); setHash('platformas'); autoSyncOnce();
+    }
+  };
+  try{ login = window.login; }catch(e){}
+
+  const oldLogoutV283 = window.logout || logout;
+  window.logout = function(){
+    clearSession(); localStorage.removeItem(STATE_KEY);
+    oldLogoutV283();
+    if(location.hash) history.replaceState(null,'',location.pathname+location.search);
+  };
+  try{ logout = window.logout; }catch(e){}
+
+  window.oldShowViewV283 = window.showView || showView;
+  window.showView = function(v){
+    saveState({module:'andamios', view:v});
+    if(!internalRouteChange) setHash('andamios', v);
+    return oldShowViewV283(v);
+  };
+  try{ showView = window.showView; }catch(e){}
+
+  const oldBackToPlatformsV283 = window.backToPlatforms || backToPlatforms;
+  window.backToPlatforms = function(){
+    saveState({module:'platformas'}); setHash('platformas');
+    return oldBackToPlatformsV283();
+  };
+  try{ backToPlatforms = window.backToPlatforms; }catch(e){}
+
+  const oldEnterPlatformV283 = window.enterPlatform || enterPlatform;
+  window.enterPlatform = function(platform){
+    if(platform==='andamios') saveState({module:'andamios', view:'andamios'});
+    if(platform==='aislacion') saveState({module:'aislacion'});
+    setHash(platform==='andamios'?'andamios':(platform==='aislacion'?'aislacion':'platformas'), 'andamios');
+    return oldEnterPlatformV283(platform);
+  };
+  try{ enterPlatform = window.enterPlatform; }catch(e){}
+
+  window.addEventListener('hashchange', ()=>{ if(!internalRouteChange) routeFromHash(); });
+  window.addEventListener('popstate', ()=>{ if(!internalRouteChange) routeFromHash(); });
+
+  window.addEventListener('load', function(){
+    forceUrl();
+    const s = readSession();
+    if(s.id && !currentUser){
+      const u = (db.usuarios||[]).find(x=>String(x.id).toLowerCase()===String(s.id).toLowerCase() && x.activo!==false);
+      if(u){
+        setSessionUser(u);
+        saveSession();
+        page('loginPage')?.classList.add('hidden');
+        const st=readState();
+        showModule(st.module||'andamios', st.view||'andamios', true);
+        autoSyncOnce();
+      }
+    }
+    setTimeout(forceUrl, 1000);
+  });
+})();
 </script>
 </body>
 </html>
