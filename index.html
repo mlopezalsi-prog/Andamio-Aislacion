@@ -608,1446 +608,398 @@ viewFO46 = function(andId,foId,print=false){
 
 
 
-/* ===== V2.1.2 - CRITERIO FINAL ANDAMIOS + INFORMES AISLACIÓN ===== */
-function tramoOverlap(inicio, fin, a, b){return Math.max(0, Math.min(fin,b)-Math.max(inicio,a));}
-function setReadOnlyIfExists(id,ro=true){const el=document.getElementById(id);if(el)el.readOnly=ro;}
-function montajeLabel(tipo){return tipo==='E'?'E - Horas extras':tipo==='F'?'F - Sáb/Dom/Feriado':'N - Horas normales';}
-function updateAndamioCalc(){
- const l=numVal('aLargo'), w=numVal('aAncho'), h=numVal('aAlto'), nivel=numVal('aNivelMontaje');
- const base=l*w, inicio=nivel, fin=nivel+h;
- const med=base*h;
- const d0=base*tramoOverlap(inicio,fin,0,6);
- const d6=base*tramoOverlap(inicio,fin,6,20);
- const d20=base*tramoOverlap(inicio,fin,20,9999);
- const conv=d0+(d6*1.10)+(d20*1.20);
- const vals={aVolumenMedido:med,aDist0:d0,aDist6:d6,aDist20:d20,aVolumenConvertido:conv,aVolumenEstructura:conv};
- Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id); if(el)el.value=(v?Number(v).toFixed(2):'');});
- const tipo=val('aTipoMontaje')||'N'; const hEl=document.getElementById('aHorarioCalc'); if(hEl)hEl.value=montajeLabel(tipo);
- ['aDist0','aDist6','aDist20','aVolumenMedido','aVolumenConvertido','aVolumenEstructura','aHorarioCalc'].forEach(id=>setReadOnlyIfExists(id,true));
-}
 
+
+/* ===== CORE LIMPIO v2.8.6 - SIN PARCHES SUPERPUESTOS ===== */
 (function(){
- const oldOpen=window.openAndamio;
- window.openAndamio=function(id=''){
-  oldOpen(id);
-  setTimeout(()=>{
-   const estado=document.getElementById('aEstado');
-   const hint=document.getElementById('aEstadoHint');
-   if(estado){estado.disabled=!id; if(!id)estado.value='Activo';}
-   if(hint)hint.textContent=id?'El estado puede cambiarse al actualizar el andamio.':'Al crear un andamio nuevo queda Activo automáticamente.';
-   const tipo=document.getElementById('aTipoMontaje'); if(tipo&&!tipo.dataset.bindFinal){tipo.addEventListener('change',updateAndamioCalc); tipo.dataset.bindFinal='1';}
-   updateAndamioCalc();
-  },80);
- };
- const oldSave=window.saveAndamio;
- window.saveAndamio=function(){
-  const id=val('andamioId');
-  updateAndamioCalc();
-  const tipo=val('aTipoMontaje')||'N';
-  let ex=document.getElementById('aExtras'), fe=document.getElementById('aFeriados');
-  if(ex)ex.value=tipo==='E'?'Sí':'No';
-  if(fe)fe.value=tipo==='F'?'Sí':'No';
-  const estado=document.getElementById('aEstado');
-  if(estado && !id){estado.disabled=false; estado.value='Activo';}
-  oldSave();
- };
-})();
+  'use strict';
 
-function aisInformeMetrics(list){
- const rows=list||[];
- const total=rows.reduce((s,r)=>s+aisSummary(r).m2,0);
- const metros=rows.reduce((s,r)=>s+aisSummary(r).metros,0);
- const fotos=rows.reduce((s,r)=>s+aisSummary(r).fotos,0);
- const acc=rows.reduce((s,r)=>s+aisSummary(r).acc,0);
- const fin=rows.filter(r=>r.estado==='Finalizado').length;
- const proc=rows.filter(r=>r.estado!=='Finalizado').length;
- return {total,metros,fotos,acc,fin,proc,cant:rows.length};
-}
-function aisShowInforme(){
- aisLoad(); aisEnsureUserLabels();
- const c=document.getElementById('aisContent'); if(!c)return;
- const list=aisState.history||[]; const mt=aisInformeMetrics(list);
- const porObra={}; list.forEach(r=>{const s=aisSummary(r); const o=r.obra||'Sin obra'; porObra[o]=porObra[o]||{cant:0,m2:0,metros:0}; porObra[o].cant++; porObra[o].m2+=s.m2; porObra[o].metros+=s.metros;});
- const rows=list.slice(0,20).map(r=>{const s=aisSummary(r); return `<tr><td><b>${r.linea||'-'}</b></td><td>${r.obra||'-'}</td><td>${r.sector||'-'}</td><td>${aisTaskLabel(r.tipo)}</td><td>${fmtNum(s.metros)}</td><td>${fmtNum(s.m2)}</td><td>${s.acc}</td><td>${r.estado||'-'}</td></tr>`}).join('')||'<tr><td colspan="8">Sin relevamientos</td></tr>';
- const obraRows=Object.entries(porObra).map(([o,v])=>`<tr><td><b>${o}</b></td><td>${v.cant}</td><td>${fmtNum(v.metros)}</td><td>${fmtNum(v.m2)}</td></tr>`).join('')||'<tr><td colspan="4">Sin datos</td></tr>';
- c.innerHTML=`<div class="aisTop"><div><h2>Informes de Aislación</h2><p>Resumen operativo de relevamientos, m², metros y accesorios cargados.</p></div><div class="actions"><button class="btn ghost" onclick="renderAislacionPage()">← Volver</button><button class="btn ok" onclick="aisInformeWhatsApp()">📲 WhatsApp</button><button class="btn primary" onclick="window.print()">🖨 Imprimir / PDF</button></div></div>
- <div class="aisStats"><div class="aisStat"><span>Relevamientos</span><b>${mt.cant}</b></div><div class="aisStat"><span>m² estimados</span><b>${fmtNum(mt.total)}</b></div><div class="aisStat"><span>Metros</span><b>${fmtNum(mt.metros)}</b></div><div class="aisStat"><span>Accesorios</span><b>${mt.acc}</b></div><div class="aisStat"><span>Finalizados</span><b>${mt.fin}</b></div><div class="aisStat"><span>En proceso</span><b>${mt.proc}</b></div></div>
- <div class="aisCard"><h3>Resumen por obra</h3><div class="tableWrap"><table><thead><tr><th>Obra</th><th>Relevamientos</th><th>Metros</th><th>m²</th></tr></thead><tbody>${obraRows}</tbody></table></div></div>
- <div class="aisCard"><h3>Detalle de relevamientos</h3><div class="tableWrap"><table><thead><tr><th>Línea / Equipo</th><th>Obra</th><th>Sector</th><th>Tipo</th><th>Metros</th><th>m²</th><th>Accesorios</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-function aisInformeWhatsApp(){
- aisLoad(); const mt=aisInformeMetrics(aisState.history||[]);
- const msg=`🧱 *AL Servicios Integrales S.A.*\n*Informe de Aislación*\n\n📒 Relevamientos: *${mt.cant}*\n📐 m² estimados: *${fmtNum(mt.total)} m²*\n📏 Metros: *${fmtNum(mt.metros)} m*\n🔩 Accesorios: *${mt.acc}*\n✅ Finalizados: *${mt.fin}*\n🟡 En proceso: *${mt.proc}*\n\nGenerado por AL Registro de Tareas.`;
- window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-}
-
-/* ===== V0.3.1 - GUARDAR TRAMO SIN DESPLAZAR CON TECLADO ===== */
-(function(){
-  function ensureAisKeyboardSave(){
-    let bar=document.getElementById('aisKeyboardSave');
-    if(!bar){
-      bar=document.createElement('div');
-      bar.id='aisKeyboardSave';
-      bar.className='aisKeyboardSave';
-      bar.innerHTML='<div class="aisKInfo"><span>Tramo listo</span><b id="aisKeyboardValue">0,00 m</b></div><button type="button" id="aisKeyboardBtn">➕ Guardar</button>';
-      document.body.appendChild(bar);
-      document.getElementById('aisKeyboardBtn').addEventListener('pointerdown',function(e){e.preventDefault();});
-      document.getElementById('aisKeyboardBtn').addEventListener('click',function(e){
-        e.preventDefault();
-        if(typeof aisAddTramo==='function'){
-          aisAddTramo();
-          setTimeout(function(){
-            const len=document.getElementById('aisLen');
-            if(len){len.focus();len.select(); updateAisKeyboardValue();}
-          },120);
-        }
-      });
-    }
-    return bar;
-  }
-  function updateAisKeyboardValue(){
-    const len=document.getElementById('aisLen');
-    const v=document.getElementById('aisKeyboardValue');
-    if(!v)return;
-    let raw=(len&&len.value?len.value:'0').replace(',', '.');
-    let n=Number(raw);
-    v.textContent=(isFinite(n)&&n>0?n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}):'0,00')+' m';
-  }
-  function bindAisLen(){
-    ensureAisKeyboardSave();
-    const len=document.getElementById('aisLen');
-    if(!len || len.dataset.kbBound==='1')return;
-    len.dataset.kbBound='1';
-    len.setAttribute('inputmode','decimal');
-    len.setAttribute('autocomplete','off');
-    len.addEventListener('focus',function(){
-      document.body.classList.add('aisLenFocused');
-      updateAisKeyboardValue();
-      setTimeout(()=>{try{len.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}},180);
-    });
-    len.addEventListener('input',updateAisKeyboardValue);
-    len.addEventListener('keydown',function(e){
-      if(e.key==='Enter'){
-        e.preventDefault();
-        if(typeof aisAddTramo==='function') aisAddTramo();
-      }
-    });
-    len.addEventListener('blur',function(){
-      setTimeout(function(){
-        const active=document.activeElement;
-        if(active && active.id==='aisKeyboardBtn')return;
-        document.body.classList.remove('aisLenFocused');
-      },180);
-    });
-  }
-  const oldRender=window.renderAislacionPage;
-  if(typeof oldRender==='function'){
-    window.renderAislacionPage=function(){
-      const res=oldRender.apply(this,arguments);
-      setTimeout(bindAisLen,120);
-      return res;
-    };
-  }
-  document.addEventListener('focusin',function(e){if(e.target&&e.target.id==='aisLen')bindAisLen();});
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(bindAisLen,250);});
-})();
-
-
-/* ===== V0.3.2 - CARGA ULTRARRÁPIDA POR ENTER ===== */
-(function(){
-  function parseAisLenValue(raw){
-    raw = String(raw || '').trim().replace(',', '.');
-    var n = Number(raw);
-    return (isFinite(n) && n > 0) ? n : 0;
-  }
-  function aisUpdateQuickStats(){
-    if(!window.aisState || !aisState.current) return;
-    var s = aisSummary(aisState.current);
-    var boxes = document.querySelectorAll('.aisStats .aisStat b');
-    if(boxes && boxes.length >= 4){
-      boxes[0].textContent = fmtNum(s.metros) + ' m';
-      boxes[1].textContent = s.tramos;
-      boxes[2].textContent = s.acc;
-      boxes[3].textContent = s.fotos;
-    }
-    var live = document.querySelector('.aisLive');
-    if(live) live.innerHTML = aisLiveHTML(aisState.current);
-    var pc = document.getElementById('aisPhotoCount');
-    if(pc) pc.textContent = '📷 ' + (window.aisPendingPhotos ? aisPendingPhotos.length : 0);
-  }
-  function aisResetLengthFocus(){
-    var len = document.getElementById('aisLen');
-    if(!len) return;
-    len.value = '0.00';
-    setTimeout(function(){
-      try{ len.focus({preventScroll:true}); }catch(e){ len.focus(); }
-      try{ len.select(); }catch(e){}
-    }, 60);
-  }
-  window.aisAddTramo = function(){
-    var len = document.getElementById('aisLen');
-    var n = parseAisLenValue(len ? len.value : '');
-    if(!n){ aisMiniToast('Ingresá una longitud válida'); aisResetLengthFocus(); return; }
-    var obsEl=document.getElementById('aisObs'), desdeEl=document.getElementById('aisDesde'), hastaEl=document.getElementById('aisHasta');
-    var obs=obsEl ? obsEl.value.trim() : '';
-    var desde=desdeEl ? desdeEl.value.trim() : '';
-    var hasta=hastaEl ? hastaEl.value.trim() : '';
-    var fotos = window.aisPendingPhotos ? aisPendingPhotos.length : 0;
-    aisState.current.registros.push({
-      id:cryptoId(),kind:'tramo',time:aisNow(),longitud:n,desde,hasta,obs,fotos,
-      title:'+'+fmtNum(n)+' m',
-      desc:(desde||'Inicio')+' → '+(hasta||'Fin')+(obs?' · '+obs:'')
-    });
-    window.aisPendingPhotos=[];
-    aisSave();
-    if(obsEl) obsEl.value='';
-    if(desdeEl) desdeEl.value='';
-    if(hastaEl) hastaEl.value='';
-    aisUpdateQuickStats();
-    aisMiniToast('✔ Tramo de '+fmtNum(n)+' m agregado');
-    aisResetLengthFocus();
-  };
-  function bindEnterFast(){
-    var len=document.getElementById('aisLen');
-    if(!len || len.dataset.enterFast==='1') return;
-    len.dataset.enterFast='1';
-    len.setAttribute('inputmode','decimal');
-    len.setAttribute('autocomplete','off');
-    len.setAttribute('enterkeyhint','done');
-    var field = len.closest('.field');
-    if(field && !field.querySelector('.aisEnterHint')){
-      var hint=document.createElement('div');
-      hint.className='aisEnterHint';
-      hint.textContent='Presioná Enter / → para guardar el tramo sin cerrar el teclado.';
-      field.appendChild(hint);
-    }
-    len.addEventListener('keydown',function(e){
-      if(e.key==='Enter'){
-        e.preventDefault();
-        window.aisAddTramo();
-      }
-    });
-    len.addEventListener('focus',function(){
-      setTimeout(function(){try{len.select();}catch(e){}},80);
-    });
-  }
-  var oldRenderAis = window.renderAislacionPage;
-  if(typeof oldRenderAis === 'function'){
-    window.renderAislacionPage = function(){
-      var res = oldRenderAis.apply(this, arguments);
-      setTimeout(bindEnterFast, 140);
-      return res;
-    };
-  }
-  document.addEventListener('focusin',function(e){ if(e.target && e.target.id==='aisLen') bindEnterFast(); });
-  document.addEventListener('DOMContentLoaded',function(){ setTimeout(bindEnterFast,300); });
-})();
-
-
-
-/* ===== V0.3.3 - FIX ENTER ANDROID + PROGRESO TRAMOS ===== */
-(function(){
-  function parseLen(raw){
-    raw = String(raw || '').trim().replace(',', '.');
-    var n = Number(raw);
-    return (isFinite(n) && n > 0) ? n : 0;
-  }
-  function getCurrent(){
-    try{ if(typeof aisState !== 'undefined' && aisState.current) return aisState.current; }catch(e){}
-    return null;
-  }
-  function refreshAisUI(){
-    var current = getCurrent();
-    if(!current) return;
-    var s = aisSummary(current);
-    var boxes = document.querySelectorAll('.aisStats .aisStat b');
-    if(boxes && boxes.length >= 4){
-      boxes[0].textContent = fmtNum(s.metros) + ' m';
-      boxes[1].textContent = s.tramos;
-      boxes[2].textContent = s.acc;
-      boxes[3].textContent = s.fotos;
-    }
-    var live = document.querySelector('.aisLive');
-    if(live) live.innerHTML = aisLiveHTML(current);
-    var pc = document.getElementById('aisPhotoCount');
-    if(pc) pc.textContent = '📷 ' + ((typeof aisPendingPhotos !== 'undefined' && aisPendingPhotos) ? aisPendingPhotos.length : 0);
-  }
-  function resetLen(keepKeyboard){
-    var len = document.getElementById('aisLen');
-    if(!len) return;
-    len.value = '0.00';
-    if(keepKeyboard !== false){
-      setTimeout(function(){
-        try{ len.focus({preventScroll:true}); }catch(e){ try{len.focus();}catch(_e){} }
-        try{ len.select(); }catch(e){}
-      }, 70);
-    }
-  }
-  function saveCurrentNow(){
-    try{
-      var current=getCurrent();
-      if(current){ current.estado = current.estado || 'En proceso'; current.updatedAt = new Date().toISOString(); }
-      if(typeof aisSave === 'function') aisSave();
-    }catch(e){}
-  }
-  window.aisAddTramo = function(options){
-    options = options || {};
-    var len = document.getElementById('aisLen');
-    var n = parseLen(len ? len.value : '');
-    if(!n){
-      if(typeof aisMiniToast === 'function') aisMiniToast('Ingresá una longitud válida');
-      resetLen(true);
-      return false;
-    }
-    var current = getCurrent();
-    if(!current){ return false; }
-    var obsEl=document.getElementById('aisObs'), desdeEl=document.getElementById('aisDesde'), hastaEl=document.getElementById('aisHasta');
-    var obs=obsEl ? obsEl.value.trim() : '';
-    var desde=desdeEl ? desdeEl.value.trim() : '';
-    var hasta=hastaEl ? hastaEl.value.trim() : '';
-    var fotos=(typeof aisPendingPhotos !== 'undefined' && aisPendingPhotos) ? aisPendingPhotos.length : 0;
-    current.registros.push({
-      id:cryptoId(), kind:'tramo', time:aisNow(), longitud:n, desde:desde, hasta:hasta, obs:obs, fotos:fotos,
-      title:'+'+fmtNum(n)+' m',
-      desc:(desde||'Inicio')+' → '+(hasta||'Fin')+(obs?' · '+obs:'')
-    });
-    if(typeof aisPendingPhotos !== 'undefined') aisPendingPhotos=[];
-    if(obsEl) obsEl.value='';
-    if(desdeEl) desdeEl.value='';
-    if(hastaEl) hastaEl.value='';
-    saveCurrentNow();
-    refreshAisUI();
-    if(typeof aisMiniToast === 'function') aisMiniToast('✔ Tramo de '+fmtNum(n)+' m agregado');
-    resetLen(options.keepKeyboard !== false);
-    return true;
-  };
-  function bindLenFixed(){
-    var len=document.getElementById('aisLen');
-    if(!len) return;
-    len.setAttribute('type','text');
-    len.setAttribute('inputmode','decimal');
-    len.setAttribute('enterkeyhint','done');
-    len.setAttribute('autocomplete','off');
-    if(len.dataset.v033Bound==='1') return;
-    len.dataset.v033Bound='1';
-    var field=len.closest('.field');
-    if(field && !field.querySelector('.aisEnterHintV33')){
-      var hint=document.createElement('div');
-      hint.className='aisEnterHint aisEnterHintV33';
-      hint.textContent='Enter / → guarda el tramo y mantiene la carga rápida.';
-      field.appendChild(hint);
-    }
-    function handleEnter(e){
-      var isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
-      if(!isEnter) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-      window.aisAddTramo({keepKeyboard:true});
-      return false;
-    }
-    len.addEventListener('keydown', handleEnter, true);
-    len.addEventListener('keypress', handleEnter, true);
-    len.addEventListener('keyup', handleEnter, true);
-    len.addEventListener('change', function(){
-      // Algunos teclados Android ejecutan “siguiente” sin disparar Enter; si hay valor, se guarda.
-      if(parseLen(len.value)){ window.aisAddTramo({keepKeyboard:true}); }
-    }, true);
-    len.addEventListener('focus',function(){ setTimeout(function(){try{len.select();}catch(e){}},60); });
-  }
-  // Captura global antes de que Chrome mueva el foco al campo siguiente.
-  document.addEventListener('keydown',function(e){
-    if(e.target && e.target.id==='aisLen' && (e.key==='Enter' || e.keyCode===13 || e.which===13)){
-      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation)e.stopImmediatePropagation();
-      window.aisAddTramo({keepKeyboard:true});
-      return false;
-    }
-  }, true);
-  document.addEventListener('focusout',function(e){
-    if(e.target && e.target.id==='aisLen'){
-      var len=e.target;
-      setTimeout(function(){
-        // Si el teclado mandó el foco al campo Desde/Hasta/Observación y quedó una medida cargada, guardar igual.
-        var active=document.activeElement;
-        if(parseLen(len.value) && active && ['aisDesde','aisHasta','aisObs'].includes(active.id)){
-          window.aisAddTramo({keepKeyboard:true});
-        }
-      },30);
-    }
-  }, true);
-  var prevRender=window.renderAislacionPage;
-  if(typeof prevRender==='function'){
-    window.renderAislacionPage=function(){
-      var res=prevRender.apply(this,arguments);
-      setTimeout(bindLenFixed,160);
-      return res;
-    };
-  }
-  document.addEventListener('focusin',function(e){ if(e.target && e.target.id==='aisLen') bindLenFixed(); }, true);
-  document.addEventListener('DOMContentLoaded',function(){ setTimeout(bindLenFixed,350); });
-  setTimeout(bindLenFixed,350);
-})();
-
-
-
-/* ===== V1.0 PRESENTACIÓN: ajustes finales ===== */
-(function(){
-  const ready=()=>{
-    document.querySelectorAll('.platformWelcome h2').forEach(el=>{ if(el.textContent.trim()==='Bienvenido') el.textContent='AL Registro de Tareas'; });
-    document.querySelectorAll('.platformWelcome p').forEach(el=>{
-      if(el.textContent.includes('Supabase')===false) el.textContent='Plataforma unificada para control de andamios, FO46, relevamientos de aislación, evidencias fotográficas, informes y mensajes de WhatsApp.';
-    });
-  };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',ready); else ready();
-})();
-
-
-/* ===== V2.1.3 - FIX GUARDAR ANDAMIOS + INFORME AISLACIÓN PDF PRO ===== */
-(function(){
-  function cssInject(){
-    if(document.getElementById('aisInformePrintCss')) return;
-    const st=document.createElement('style');
-    st.id='aisInformePrintCss';
-    st.textContent=`
-      .aisReportShell{background:#fff;border:1px solid #d7e2f2;border-radius:24px;padding:16px;box-shadow:0 18px 45px rgba(15,23,42,.10)}
-      .aisReportHeader{display:grid;grid-template-columns:130px 1fr 260px;border:1px solid #d7e2f2;border-radius:18px;overflow:hidden;margin-bottom:14px;background:#fff}
-      .aisReportLogo{display:grid;place-items:center;padding:14px;border-right:1px solid #d7e2f2}.aisReportLogo img{max-width:90px;max-height:72px;object-fit:contain}
-      .aisReportTitle{padding:18px}.aisReportTitle h2{margin:0;color:#082a63;font-size:28px;letter-spacing:-.4px}.aisReportTitle b{display:block;margin-top:5px;color:#0b2d63}.aisReportTitle span{display:block;color:#667085;margin-top:4px;font-weight:800}
-      .aisReportMeta{padding:14px;border-left:1px solid #d7e2f2;display:grid;gap:7px;font-size:12px}.aisReportMeta div{display:grid;grid-template-columns:88px 1fr;gap:6px}.aisReportMeta b{color:#0f172a}
-      .aisReportSection{display:flex;align-items:center;gap:10px;color:#082a63;font-weight:1000;text-transform:uppercase;margin:16px 0 10px}.aisReportSection:after{content:'';height:2px;background:#0b3b79;flex:1}
-      .aisReportKpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:12px 0}.aisReportKpi{border:1px solid #d7e2f2;border-radius:14px;background:#fbfdff;padding:12px;text-align:center}.aisReportKpi span{display:block;color:#667085;font-size:11px;text-transform:uppercase;font-weight:950}.aisReportKpi b{display:block;font-size:24px;color:#061127;margin-top:4px}
-      .aisReportTable{width:100%;border-collapse:collapse;min-width:760px;background:#fff}.aisReportTable th{background:#082a63!important;color:#fff!important;font-size:11px;text-transform:uppercase;padding:9px}.aisReportTable td{border:1px solid #dfe7f2;padding:8px;font-size:12px;vertical-align:top}.aisReportTable small{color:#667085;font-weight:800}.aisDetailLine{margin:2px 0;color:#334155}.aisPrintableNote{background:#eef6ff;border:1px solid #bfd7ff;color:#06459b;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:850;margin:10px 0}
-      @media(max-width:900px){.aisReportHeader{grid-template-columns:1fr;text-align:center}.aisReportLogo{border-right:0;border-bottom:1px solid #d7e2f2}.aisReportMeta{border-left:0;border-top:1px solid #d7e2f2;text-align:left}.aisReportKpis{grid-template-columns:repeat(2,1fr)}}
-      @media print{
-        @page{size:A4 landscape;margin:7mm}
-        body *{visibility:hidden!important}
-        #aisInformeBody,#aisInformeBody *{visibility:visible!important}
-        #aisInformeBody{position:absolute!important;left:0!important;top:0!important;width:100%!important;background:#fff!important;padding:0!important;margin:0!important}
-        .aisTop,.aisActionsPrint,.aisSidebar,.sidebar,.bottomNav,.mobileTop,.noPrint{display:none!important}
-        .aisReportShell{box-shadow:none!important;border:0!important;border-radius:0!important;padding:0!important}
-        .aisReportHeader{border-radius:0!important;margin-bottom:7px!important}
-        .aisReportKpis{grid-template-columns:repeat(6,1fr)!important;gap:5px!important;margin:7px 0!important}
-        .aisReportKpi{padding:6px!important;border-radius:8px!important}.aisReportKpi b{font-size:16px!important}.aisReportKpi span{font-size:8px!important}
-        .aisReportTable{min-width:0!important}.aisReportTable th,.aisReportTable td{font-size:8px!important;padding:4px!important;line-height:1.15!important}.tableWrap{overflow:visible!important;border:0!important}
-        .aisReportTitle h2{font-size:18px!important}.aisReportTitle{padding:9px!important}.aisReportMeta{font-size:8px!important;padding:7px!important}.aisReportLogo img{max-width:55px!important}.aisReportSection{font-size:10px!important;margin:8px 0 5px!important}.aisPrintableNote{display:none!important}
-      }`;
-    document.head.appendChild(st);
-  }
-  function safeNum(n){return (isFinite(Number(n))?Number(n):0)}
-  function detalleRelevamiento(r){
-    const regs=r.registros||[];
-    if(!regs.length) return '<span class="muted">Sin detalle cargado</span>';
-    return regs.map(x=>{
-      if(x.kind==='tramo') return `<div class="aisDetailLine">• Tramo: <b>${fmtNum(x.longitud)} m</b>${x.desde||x.hasta?` · ${x.desde||'Inicio'} → ${x.hasta||'Fin'}`:''}${x.obs?` · ${x.obs}`:''}</div>`;
-      if(x.kind==='accesorio') return `<div class="aisDetailLine">• Accesorio: <b>${x.tipo||'-'} × ${x.cantidad||1}</b>${x.diametro?` · ${x.diametro}`:''}${x.obs?` · ${x.obs}`:''}</div>`;
-      if(x.kind==='equipo') return `<div class="aisDetailLine">• Equipo: <b>${x.tag||'-'}</b>${x.area?` · ${fmtNum(x.area)} m²`:''} · ${x.desc||''}</div>`;
-      return `<div class="aisDetailLine">• ${x.title||'Observación'}: ${x.desc||''}</div>`;
-    }).join('');
-  }
-  window.aisShowInforme=function(){
-    cssInject();
-    aisLoad(); aisEnsureUserLabels();
-    const c=document.getElementById('aisContent'); if(!c)return;
-    const list=aisState.history||[];
-    const mt=aisInformeMetrics(list);
-    const porObra={};
-    list.forEach(r=>{const s=aisSummary(r); const o=r.obra||'Sin obra'; porObra[o]=porObra[o]||{cant:0,m2:0,metros:0,acc:0}; porObra[o].cant++; porObra[o].m2+=s.m2; porObra[o].metros+=s.metros; porObra[o].acc+=s.acc;});
-    const obraRows=Object.entries(porObra).map(([o,v])=>`<tr><td><b>${o}</b></td><td>${v.cant}</td><td>${fmtNum(v.metros)}</td><td>${fmtNum(v.m2)}</td><td>${v.acc}</td></tr>`).join('')||'<tr><td colspan="5">Sin datos</td></tr>';
-    const detalleRows=list.map(r=>{const s=aisSummary(r);return `<tr><td><b>${r.linea||'-'}</b><br><small>${r.isometrico||''}</small></td><td>${r.obra||'-'}<br><small>${r.sector||'-'}</small></td><td>${aisTaskLabel(r.tipo)}<br><small>${r.estado||'-'}</small></td><td>${r.diametro||'-'}<br><small>${r.espesor||'-'} · ${r.capas||'-'} capas</small></td><td style="text-align:right"><b>${fmtNum(s.metros)}</b></td><td style="text-align:right"><b>${fmtNum(s.m2)}</b></td><td>${detalleRelevamiento(r)}</td></tr>`}).join('')||'<tr><td colspan="7">Sin relevamientos</td></tr>';
-    c.innerHTML=`<div class="aisTop noPrint"><div><h2>Informes de Aislación</h2><p>Vista ejecutiva con detalle imprimible de relevamientos, m², metros y accesorios.</p></div><div class="actions aisActionsPrint"><button class="btn ghost" onclick="renderAislacionPage()">← Volver</button><button class="btn ok" onclick="aisInformeWhatsApp()">📲 WhatsApp</button><button class="btn primary" onclick="window.print()">🖨 Imprimir / PDF</button></div></div>
-    <div id="aisInformeBody" class="aisReportShell">
-      <div class="aisReportHeader"><div class="aisReportLogo"><img src="${typeof AL_LOGO_DATA!=='undefined'?AL_LOGO_DATA:''}" alt="AL"></div><div class="aisReportTitle"><h2>CONTROL DE AISLACIÓN</h2><b>INFORME GENERAL</b><span>Base operativa de relevamientos y detalles cargados</span></div><div class="aisReportMeta"><div><b>OBRA:</b><span>Todas las obras</span></div><div><b>REGISTROS:</b><span>${mt.cant}</span></div><div><b>GENERADO:</b><span>${currentUser?.nombre||'Usuario'}</span></div><div><b>FECHA:</b><span>${new Date().toLocaleString('es-AR')}</span></div></div></div>
-      <div class="aisReportSection">Resumen ejecutivo</div>
-      <div class="aisReportKpis"><div class="aisReportKpi"><span>Relevamientos</span><b>${mt.cant}</b></div><div class="aisReportKpi"><span>m² estimados</span><b>${fmtNum(mt.total)}</b></div><div class="aisReportKpi"><span>Metros</span><b>${fmtNum(mt.metros)}</b></div><div class="aisReportKpi"><span>Accesorios</span><b>${mt.acc}</b></div><div class="aisReportKpi"><span>Finalizados</span><b>${mt.fin}</b></div><div class="aisReportKpi"><span>En proceso</span><b>${mt.proc}</b></div></div>
-      <div class="aisPrintableNote noPrint">Al imprimir se incluirán las tablas de detalle completas.</div>
-      <div class="aisReportSection">Resumen por obra</div><div class="tableWrap"><table class="aisReportTable"><thead><tr><th>Obra</th><th>Relevamientos</th><th>Metros</th><th>m²</th><th>Accesorios</th></tr></thead><tbody>${obraRows}</tbody></table></div>
-      <div class="aisReportSection">Detalle de relevamientos</div><div class="tableWrap"><table class="aisReportTable"><thead><tr><th>Línea / Equipo</th><th>Obra / Sector</th><th>Tipo / Estado</th><th>Diámetro / Aislación</th><th>Metros</th><th>m²</th><th>Detalle cargado</th></tr></thead><tbody>${detalleRows}</tbody></table></div>
-    </div>`;
-  };
-  // Evita error al guardar si alguna versión del formulario no trae los campos ocultos de extras/feriados.
-  const originalVal=window.val;
-  if(typeof originalVal==='function' && !window.__valSafePatch){
-    window.__valSafePatch=true;
-    window.val=function(id){const el=document.getElementById(id); return el && el.value!=null ? String(el.value).trim() : '';};
-  }
-})();
-
-
-/* ===== V2.4 - CONEXION GOOGLE SHEETS ROBUSTA (POST POR FORM + DIAGNOSTICO) ===== */
-(function(){
-  const SYNC_VERSION='v2.7.1 Normalizado';
-  const DEFAULT_SHEET_WEBAPP_URL='https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
-  const SYNC_LOG_KEY='al_andamios_sheet_sync_log_v26';
-
-  function cfg(){ db.config=db.config||{}; return db.config; }
-  function sheetUrl(){ return (cfg().sheetWebAppUrl||DEFAULT_SHEET_WEBAPP_URL||'').trim(); }
-  function setSheetUrl(url){ cfg().sheetWebAppUrl=(url||'').trim(); persist(); }
-  function cleanPhotoForSheet(v){ return (v && String(v).startsWith('data:image')) ? '' : (v||''); }
-  function safeJSON(v,fallback){ try{return v?JSON.parse(v):fallback}catch(e){return fallback} }
-  function nowText(){ return new Date().toLocaleString('es-AR'); }
-  function logSync(partial){
-    const prev=safeJSON(localStorage.getItem(SYNC_LOG_KEY),{});
-    const next={...prev,...partial,updatedAt:nowText()};
-    localStorage.setItem(SYNC_LOG_KEY,JSON.stringify(next));
-    renderSheetStatus();
-  }
-  function getSyncLog(){ return safeJSON(localStorage.getItem(SYNC_LOG_KEY),{}); }
-
-  function andamioPayload(a){
-    return {
-      id:a.id||cryptoId(), obra:a.obra||'', sector:a.sector||'', precinto:a.precinto||'', codigo:a.codigo||'', tipo:a.tipo||'', descripcion:a.descripcion||'',
-      fechaMontaje:a.fechaMontaje||a.fecha||'', tipoMontaje:a.tipoMontaje||'', nivelMontaje:a.nivelMontaje||'', largo:a.largo||'', ancho:a.ancho||'', alto:a.alto||'',
-      volumenMedido:a.volumenMedido||m3(a), dist0:a.dist0||'', dist6:a.dist6||'', dist20:a.dist20||'', volumenConvertido:a.volumenConvertido||'',
-      extras:a.extras||'', feriados:a.feriados||'', volumenEstructura:a.volumenEstructura||'', fecha:a.fecha||a.fechaMontaje||'', estado:a.estado||'',
-      supervisorPlanta:a.supervisorPlanta||'', supervisorAL:a.supervisorAL||'', responsable:a.responsable||'', observaciones:a.observaciones||'',
-      foto:cleanPhotoForSheet(a.foto), usuario:a.usuario||a.createdBy||'', createdAt:a.createdAt||'', createdBy:a.createdBy||'', updatedAt:a.updatedAt||'', updatedBy:a.updatedBy||'',
-      historial:JSON.stringify(a.historial||[]), fo46:JSON.stringify(a.fo46||[]), photos:JSON.stringify((a.photos||[]).map(x=>({...x,data:cleanPhotoForSheet(x.data)}))), documentos:JSON.stringify(a.documentos||[])
-    };
-  }
-
-  function looksLikeDateValue(v){
-    const s=String(v||'').trim();
-    return /^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}$/.test(s) || /^Invalid Date$/i.test(s);
-  }
-  function cleanSheetDate(v){
-    const s=String(v||'').trim();
-    if(!s)return '';
-    if(/^\d{4}-\d{2}-\d{2}T/.test(s))return s.slice(0,10);
-    if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
-    const d=new Date(s);
-    if(!isNaN(d.getTime()))return d.toISOString().slice(0,10);
-    return '';
-  }
-  function cleanSheetNumber(v){
-    const s=String(v||'').trim();
-    if(!s || looksLikeDateValue(s))return '';
-    const n=Number(s.replace(',','.'));
-    return isNaN(n)?s:n;
-  }
-  function normalizeFromSheet(r){
-    const a={...r};
-    ['fechaMontaje','fecha'].forEach(k=>{ a[k]=cleanSheetDate(a[k]); });
-    ['largo','ancho','alto','volumenMedido','dist0','dist6','dist20','volumenConvertido','volumenEstructura'].forEach(k=>{ a[k]=cleanSheetNumber(a[k]); });
-    a.id=a.id||cryptoId(); a.historial=safeJSON(a.historial,[]); a.fo46=safeJSON(a.fo46,[]); a.photos=safeJSON(a.photos,[]); a.documentos=safeJSON(a.documentos,[]);
-    if(!a.createdAt)a.createdAt=new Date().toISOString(); if(!a.updatedAt)a.updatedAt=a.createdAt; if(!a.fecha)a.fecha=a.fechaMontaje||today();
-    return a;
-  }
-
-  // POST compatible con archivo local file://. No depende de CORS ni de fetch.
-  // Requiere Apps Script v2.4, que lee e.parameter.payload.
-  function formPostSheet(action,payload,onQueued){
-    const url=sheetUrl();
-    if(!url){ toast('Pegá primero la URL del Web App de Google Sheets'); return; }
-    const iframeName='sheetPostFrame_'+Date.now();
-    const iframe=document.createElement('iframe');
-    iframe.name=iframeName; iframe.style.display='none';
-    document.body.appendChild(iframe);
-
-    const form=document.createElement('form');
-    form.method='POST'; form.action=url; form.target=iframeName; form.style.display='none';
-
-    const input=document.createElement('textarea');
-    input.name='payload';
-    input.value=JSON.stringify({action,...payload});
-    form.appendChild(input);
-    document.body.appendChild(form);
-
-    logSync({estado:'Sincronizando...',ultimoEnvio:nowText(),ultimaAccion:action});
-    try{
-      form.submit();
-      const count=action==='replaceAndamios' ? ((payload.andamios||[]).length) : 1;
-      logSync({estado:'Enviado a Google Sheets',ultimoEnvio:nowText(),enviados:(Number(getSyncLog().enviados||0)+count),pendientes:0});
-      toast(action==='replaceAndamios'?'Base enviada a Google Sheets':(action==='createDriveFoldersPending'?'Solicitud Drive enviada':'Andamio enviado a Google Sheets'));
-      if(action==='upsertAndamio'){
-        logSync({estado:'Enviado. Actualizando desde Sheets...'});
-        setTimeout(()=>{ try{ window.syncLoadFromSheets&&window.syncLoadFromSheets(); }catch(e){} },3200);
-      }
-      if(onQueued)onQueued();
-    }catch(err){
-      logSync({estado:'Error al enviar',ultimoError:String(err&&err.message?err.message:err),pendientes:Number(getSyncLog().pendientes||0)+1});
-      toast('No se pudo enviar a Google Sheets');
-    }finally{
-      setTimeout(()=>{ try{form.remove(); iframe.remove();}catch(e){} },12000);
-    }
-  }
-
-  function jsonp(params,onOk){
-    const url=sheetUrl();
-    if(!url){ toast('Pegá primero la URL del Web App de Google Sheets'); return; }
-    const cb='sheetCb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    window[cb]=function(res){ try{ onOk&&onOk(res); } finally{ delete window[cb]; script.remove(); } };
-    const q=new URLSearchParams({...params,callback:cb,_:Date.now()});
-    const script=document.createElement('script');
-    script.onerror=function(){ delete window[cb]; script.remove(); logSync({estado:'Error de lectura',ultimoError:'No se pudo leer Google Sheets'}); toast('No se pudo leer Google Sheets'); };
-    script.src=url+(url.includes('?')?'&':'?')+q.toString();
-    document.body.appendChild(script);
-  }
-
-  window.syncSaveAllToSheets=function(){
-    if(!db.andamios.length){toast('No hay andamios para enviar');return}
-    formPostSheet('replaceAndamios',{andamios:db.andamios.map(andamioPayload)},()=>toast('Base completa enviada a Sheets'));
-  };
-  window.syncLoadFromSheets=function(){
-    jsonp({action:'listAndamios'},function(res){
-      if(!res||res.ok===false){logSync({estado:'Error de lectura',ultimoError:res?.error||'Error al leer Sheets'});toast(res?.error||'Error al leer Sheets');return}
-      const rows=(res.andamios||[]).map(normalizeFromSheet);
-      db.andamios=rows; persist(); renderAll(); logSync({estado:'Datos cargados desde Sheets',ultimaLectura:nowText(),leidos:rows.length}); toast('Datos cargados desde Google Sheets: '+rows.length);
-    });
-  };
-  window.syncTestSheets=function(){
-    jsonp({action:'ping'},function(res){
-      if(res&&res.ok){logSync({estado:'Conectado',ultimaPrueba:nowText(),versionServidor:res.version||''}); toast('Conexión correcta con Google Sheets');}
-      else{logSync({estado:'Respuesta incorrecta',ultimoError:'Ping sin ok'}); toast('No respondió correctamente');}
-    });
-  };
-  window.saveSheetConfig=function(){
-    setSheetUrl(val('sheetWebAppUrl'));
-    logSync({estado:'URL guardada'});
-    toast('URL de Google Sheets guardada');
-  };
-  window.syncSendLastAndamio=function(){
-    if(!db.andamios.length){toast('No hay andamios cargados');return}
-    formPostSheet('upsertAndamio',{andamio:andamioPayload(db.andamios[0])},()=>setTimeout(()=>syncLoadFromSheets&&syncLoadFromSheets(),3200));
-  };
-  window.syncEnsureDriveAll=function(){
-    if(!sheetUrl()){toast('Pegá primero la URL del Web App de Google Sheets');return}
-    formPostSheet('createDriveFoldersPending',{},()=>{
-      toast('Creando carpetas Drive pendientes...');
-      setTimeout(()=>syncLoadFromSheets&&syncLoadFromSheets(),4200);
-    });
-  };
-
-  function statusHTML(){
-    const s=getSyncLog();
-    return `<div id="sheetStatusBox" class="readOnlyHint" style="margin-top:12px;background:#fff">
-      <b>Estado de sincronización</b><br>
-      Estado: <b>${s.estado||'Sin probar'}</b><br>
-      Último envío: <b>${s.ultimoEnvio||'-'}</b><br>
-      Última lectura: <b>${s.ultimaLectura||'-'}</b><br>
-      Registros enviados: <b>${s.enviados||0}</b> · Registros leídos: <b>${s.leidos||0}</b> · Pendientes: <b>${s.pendientes||0}</b>
-      ${s.ultimoError?`<br>Error: <b style="color:#b91c1c">${s.ultimoError}</b>`:''}
-    </div>`;
-  }
-  function renderSheetStatus(){
-    const box=document.getElementById('sheetStatusBox');
-    if(box){ box.outerHTML=statusHTML(); }
-  }
-  function attachConfigPanel(){
-    const host=document.getElementById('view-config'); if(!host || document.getElementById('sheetSyncPanel'))return;
-    host.insertAdjacentHTML('beforeend',`<div class="card" id="sheetSyncPanel"><div class="cardHead"><h3>Vinculación Google Sheets</h3><span class="badge blue">${SYNC_VERSION}</span></div><div class="readOnlyHint">Pegá acá la URL del Web App de Apps Script. Esta versión envía los datos por POST compatible con archivo local.</div><div class="field"><label>URL Web App / Apps Script</label><input id="sheetWebAppUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" value="${sheetUrl()}"></div><div class="actions"><button class="btn ghost" onclick="saveSheetConfig()">Guardar URL</button><button class="btn warn" onclick="syncTestSheets()">Probar conexión</button><button class="btn primary" onclick="syncLoadFromSheets()">Cargar desde Sheets</button><button class="btn ok" onclick="syncSaveAllToSheets()">Enviar todo a Sheets</button><button class="btn ghost" onclick="syncSendLastAndamio()">Reenviar último andamio</button><button class="btn warn" onclick="syncEnsureDriveAll()">Crear carpetas Drive pendientes</button></div><div class="readOnlyHint" style="margin-top:12px">Al guardar un andamio, también se envía automáticamente a la planilla si la URL está configurada. Las fotos base64 no se guardan en Sheets; se guarda link/ID de Drive cuando exista.</div>${statusHTML()}</div>`);
-  }
-
-  const oldRenderConfig=window.renderConfig;
-  window.renderConfig=function(){ oldRenderConfig&&oldRenderConfig(); attachConfigPanel(); renderSheetStatus(); };
-
-  const oldSaveAndamio=window.saveAndamio;
-  window.saveAndamio=function(){
-    const editId=val('andamioId');
-    const beforeIds=new Set((db.andamios||[]).map(x=>x.id));
-    const beforeLen=(db.andamios||[]).length;
-    oldSaveAndamio&&oldSaveAndamio();
-    if(!sheetUrl())return;
-    let a=null;
-    if(editId) a=db.andamios.find(x=>x.id===editId);
-    if(!a && db.andamios.length>beforeLen) a=db.andamios.find(x=>!beforeIds.has(x.id));
-    if(!a) a=db.andamios[0];
-    if(a) formPostSheet('upsertAndamio',{andamio:andamioPayload(a)});
-  };
-
-  const oldDesarmar=window.desarmarAndamio;
-  window.desarmarAndamio=function(id){
-    oldDesarmar&&oldDesarmar(id);
-    const a=db.andamios.find(x=>x.id===id);
-    if(a&&sheetUrl())formPostSheet('upsertAndamio',{andamio:andamioPayload(a)});
-  };
-})();
-
-
-/* ===== V2.6 - LISTAS DINAMICAS DESDE GOOGLE SHEETS ===== */
-(function(){
-  const DEFAULT_SHEET_WEBAPP_URL='https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
-  function cfg(){ db.config=db.config||{}; return db.config; }
-  function sheetUrl(){ return (cfg().sheetWebAppUrl||DEFAULT_SHEET_WEBAPP_URL||'').trim(); }
-  function catalogs(){ cfg().catalogos=cfg().catalogos||{sectores:[],supervisores:[]}; return cfg().catalogos; }
-  function norm(s){ return String(s||'').trim(); }
-  function uniq(arr){ return [...new Set(arr.map(norm).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')); }
-  function fallbackSectores(obra){
-    const o=(db.obras||[]).find(x=>x.nombre===obra);
-    return uniq([...(o?.sectores||[]), ...(db.andamios||[]).filter(a=>a.obra===obra).map(a=>a.sector)]);
-  }
-  function getSectores(obra){
-    const rows=(catalogs().sectores||[]).filter(x=>(!obra||x.planta===obra||x.obra===obra) && String(x.activo||'SI').toUpperCase()!=='NO');
-    const list=uniq(rows.map(x=>x.sector));
-    return list.length?list:fallbackSectores(obra);
-  }
-  function getSupervisores(obra){
-    const rows=(catalogs().supervisores||[]).filter(x=>(!obra||x.planta===obra||x.obra===obra) && String(x.activo||'SI').toUpperCase()!=='NO');
-    const list=uniq(rows.map(x=>x.supervisor));
-    return list.length?list:uniq((db.andamios||[]).filter(a=>!obra||a.obra===obra).map(a=>a.supervisorPlanta));
-  }
-  function fillOptions(id,items,selected,placeholder){
-    const el=document.getElementById(id); if(!el)return;
-    const valSel=norm(selected||el.value);
-    const final=uniq([valSel,...items]);
-    el.innerHTML='<option value="">'+placeholder+'</option>'+final.map(x=>`<option ${x===valSel?'selected':''}>${x}</option>`).join('');
-  }
-  function fillDynamicLists(selectedSector='',selectedSupervisor=''){
-    const obra=val('aObra');
-    fillOptions('aSector',getSectores(obra),selectedSector,'Seleccionar sector');
-    fillOptions('aSupervisorPlanta',getSupervisores(obra),selectedSupervisor,'Seleccionar supervisor');
-    const resp=document.getElementById('aResponsable');
-    if(resp && currentUser) resp.value=currentUser.nombre;
-  }
-  const oldFillSelects=window.fillSelects || fillSelects;
-  window.fillSelects=function(){
-    if(oldFillSelects)oldFillSelects();
-    const obra=document.getElementById('aObra');
-    if(obra && !obra.__dynLinked){obra.__dynLinked=true; obra.addEventListener('change',()=>fillDynamicLists());}
-    fillDynamicLists();
-  };
-  try{ fillSelects=window.fillSelects; }catch(e){}
-
-  const oldOpen=window.openAndamio || openAndamio;
-  window.openAndamio=function(id=''){
-    oldOpen&&oldOpen(id);
-    setTimeout(()=>{
-      const a=id?(db.andamios||[]).find(x=>x.id===id):null;
-      fillDynamicLists(a?.sector||'',a?.supervisorPlanta||'');
-      if(currentUser)setIfExists('aResponsable',currentUser.nombre);
-      setIfExists('aCodigo','');
-      setIfExists('aSupervisorAL','');
-    },0);
-  };
-  try{ openAndamio=window.openAndamio; }catch(e){}
-
-  function jsonpCatalog(params,onOk){
-    const url=sheetUrl(); if(!url){toast('Pegá primero la URL del Web App de Google Sheets');return;}
-    const cb='catCb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const script=document.createElement('script');
-    window[cb]=function(res){try{onOk&&onOk(res)}finally{delete window[cb];script.remove();}};
-    script.onerror=function(){delete window[cb];script.remove();toast('No se pudieron leer las listas de Sheets');};
-    const q=new URLSearchParams({...params,callback:cb,_:Date.now()});
-    script.src=url+(url.includes('?')?'&':'?')+q.toString();
-    document.body.appendChild(script);
-  }
-  function postCatalog(action,payload,done){
-    const url=sheetUrl(); if(!url){toast('Pegá primero la URL del Web App de Google Sheets');return;}
-    const iframeName='catPostFrame_'+Date.now();
-    const iframe=document.createElement('iframe'); iframe.name=iframeName; iframe.style.display='none'; document.body.appendChild(iframe);
-    const form=document.createElement('form'); form.method='POST'; form.action=url; form.target=iframeName; form.style.display='none';
-    const input=document.createElement('textarea'); input.name='payload'; input.value=JSON.stringify({action,...payload}); form.appendChild(input); document.body.appendChild(form);
-    try{form.submit(); setTimeout(()=>{done&&done();},800);}catch(e){toast('No se pudo enviar a Sheets');}
-    setTimeout(()=>{try{form.remove();iframe.remove();}catch(e){}},12000);
-  }
-  window.syncLoadCatalogs=function(){
-    jsonpCatalog({action:'listCatalogos'},function(res){
-      if(!res||res.ok===false){toast(res?.error||'No se pudieron cargar las listas');return;}
-      catalogs().sectores=res.sectores||[]; catalogs().supervisores=res.supervisores||[]; persist(); fillDynamicLists(); toast('Listas cargadas desde Sheets');
-    });
-  };
-  window.addSectorFromModal=function(){
-    const planta=val('aObra'); if(!planta){toast('Primero seleccioná una obra');return;}
-    const sector=prompt('Nuevo sector para '+planta); if(!norm(sector))return;
-    catalogs().sectores.push({planta,sector:norm(sector),activo:'SI'}); persist(); fillDynamicLists(norm(sector),val('aSupervisorPlanta'));
-    postCatalog('addSector',{planta,sector:norm(sector)},()=>{toast('Sector agregado'); syncLoadCatalogs();});
-  };
-  window.addSupervisorFromModal=function(){
-    const planta=val('aObra'); if(!planta){toast('Primero seleccioná una obra');return;}
-    const supervisor=prompt('Nuevo supervisor de planta para '+planta); if(!norm(supervisor))return;
-    catalogs().supervisores.push({planta,supervisor:norm(supervisor),activo:'SI'}); persist(); fillDynamicLists(val('aSector'),norm(supervisor));
-    postCatalog('addSupervisor',{planta,supervisor:norm(supervisor)},()=>{toast('Supervisor agregado'); syncLoadCatalogs();});
-  };
-  const oldSave=window.saveAndamio || saveAndamio;
-  window.saveAndamio=function(){
-    if(currentUser)setIfExists('aResponsable',currentUser.nombre);
-    setIfExists('aCodigo',''); setIfExists('aSupervisorAL','');
-    oldSave&&oldSave();
-  };
-  try{ saveAndamio=window.saveAndamio; }catch(e){}
-
-  const oldRenderConfig2=window.renderConfig;
-  window.renderConfig=function(){
-    oldRenderConfig2&&oldRenderConfig2();
-    const panel=document.getElementById('sheetSyncPanel');
-    if(panel && !document.getElementById('catalogSyncBox')){
-      panel.insertAdjacentHTML('beforeend',`<div id="catalogSyncBox" class="readOnlyHint" style="margin-top:12px;background:#fff"><b>Listas dinámicas</b><br>Sectores y supervisores se leen desde las hojas <b>Sectores</b> y <b>Supervisores</b>.<div class="actions" style="margin-top:10px"><button class="btn ghost" onclick="syncLoadCatalogs()">Cargar listas desde Sheets</button></div></div>`);
-    }
-  };
-  try{ renderConfig=window.renderConfig; }catch(e){}
-})();
-
-
-/* ===== V2.7 - PRECINTO UNICO E INMODIFICABLE ===== */
-(function(){
-  function normPrecinto(v){return String(v||'').trim().replace(/\s+/g,' ').toUpperCase();}
-  function findByPrecinto(precinto,ignoreId=''){
-    const p=normPrecinto(precinto);
-    if(!p)return null;
-    return (db.andamios||[]).find(a=>normPrecinto(a.precinto)===p && String(a.id)!==String(ignoreId));
-  }
-  function duplicateMessage(a,p){
-    return `El precinto ${p} ya existe.\n\nObra: ${a.obra||'-'}\nSector: ${a.sector||'-'}\nEstado: ${a.estado||'-'}\nFecha: ${a.fechaMontaje||a.fecha||'-'}\nResponsable: ${a.responsable||userName(a.usuario)||'-'}`;
-  }
-  function ensurePrecintoHint(){
-    const el=document.getElementById('aPrecinto');
-    if(!el)return;
-    let hint=document.getElementById('precintoUniqueHint');
-    if(!hint){
-      hint=document.createElement('small');
-      hint.id='precintoUniqueHint';
-      hint.style.cssText='display:block;margin-top:6px;font-weight:900;color:#667085;line-height:1.3';
-      el.insertAdjacentElement('afterend',hint);
-    }
-    return hint;
-  }
-  function validatePrecintoField(){
-    const el=document.getElementById('aPrecinto');
-    const hint=ensurePrecintoHint();
-    if(!el||!hint)return true;
-    const id=val('andamioId');
-    const p=normPrecinto(el.value);
-    if(el.value!==p)el.value=p;
-    if(!p){hint.textContent='El precinto físico es obligatorio.'; hint.style.color='#b91c1c'; return false;}
-    const original=id?(db.andamios||[]).find(a=>a.id===id):null;
-    if(original && normPrecinto(original.precinto)!==p){
-      hint.textContent='El precinto no puede modificarse después de guardar.'; hint.style.color='#b91c1c'; return false;
-    }
-    const dup=findByPrecinto(p,id);
-    if(dup){
-      hint.textContent=`Precinto existente: ${dup.obra||'-'} · ${dup.sector||'-'} · ${dup.estado||'-'}`;
-      hint.style.color='#b91c1c';
-      return false;
-    }
-    hint.textContent=id?'Precinto bloqueado: único e inmodificable.':'Precinto disponible.';
-    hint.style.color=id?'#475467':'#166534';
-    return true;
-  }
-  const oldOpen=window.openAndamio || openAndamio;
-  window.openAndamio=function(id=''){
-    oldOpen&&oldOpen(id);
-    setTimeout(()=>{
-      const p=document.getElementById('aPrecinto');
-      if(p){
-        p.disabled=!!id;
-        p.placeholder='Ingrese el número físico del precinto';
-        if(!p.__uniqueBind){
-          p.__uniqueBind=true;
-          p.addEventListener('input',validatePrecintoField);
-          p.addEventListener('blur',validatePrecintoField);
-        }
-      }
-      validatePrecintoField();
-    },120);
-  };
-  try{ openAndamio=window.openAndamio; }catch(e){}
-
-  const oldSave=window.saveAndamio || saveAndamio;
-  window.saveAndamio=function(){
-    const id=val('andamioId');
-    const p=normPrecinto(val('aPrecinto'));
-    const el=document.getElementById('aPrecinto'); if(el)el.value=p;
-    if(!p){toast('El precinto es obligatorio'); validatePrecintoField(); return;}
-    const original=id?(db.andamios||[]).find(a=>a.id===id):null;
-    if(original && normPrecinto(original.precinto)!==p){
-      toast('El precinto no puede modificarse');
-      if(el)el.value=original.precinto||'';
-      validatePrecintoField();
-      return;
-    }
-    const dup=findByPrecinto(p,id);
-    if(dup){
-      alert(duplicateMessage(dup,p));
-      toast('Precinto duplicado');
-      validatePrecintoField();
-      return;
-    }
-    oldSave&&oldSave();
-  };
-  try{ saveAndamio=window.saveAndamio; }catch(e){}
-})();
-
-
-/* ===== V2.7.1 - NORMALIZACION DE CATALOGOS SHEETS ===== */
-(function(){
-  const DEFAULT_SHEET_WEBAPP_URL='https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
-  function cfg(){ db.config=db.config||{}; return db.config; }
-  function sheetUrl(){ return (cfg().sheetWebAppUrl||DEFAULT_SHEET_WEBAPP_URL||'').trim(); }
-  function catalogs(){ cfg().catalogos=cfg().catalogos||{sectores:[],supervisores:[]}; return cfg().catalogos; }
-  function norm(s){ return String(s||'').trim(); }
-  function active(v){ const s=norm(v||'SI').toUpperCase(); return ['NO','INACTIVO','INACTIVA','FALSE','0','BAJA'].includes(s)?'NO':'SI'; }
-  function uniq(arr){ return [...new Set(arr.map(norm).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')); }
-  function normalizeCatalogRows(rows,key){
-    const out=[], seen={};
-    (rows||[]).forEach((r,i)=>{
-      let planta=norm(r.planta||r.obra||''), value=norm(r[key]||''), activo=active(r.activo||r.estado||'SI');
-      // Compatibilidad si llega alguna fila vieja con columnas corridas.
-      if(!planta && r[1]) planta=norm(r[1]);
-      if(!value && r[2]) value=norm(r[2]);
-      if(!planta || !value || activo==='NO') return;
-      const sig=(planta+'|'+value).toLowerCase();
-      if(seen[sig]) return;
-      seen[sig]=true;
-      out.push({id:String(out.length+1),planta,[key]:value,activo:'SI'});
-    });
-    return out;
-  }
-  function getRows(key,obra){
-    const rows=key==='sector'?(catalogs().sectores||[]):(catalogs().supervisores||[]);
-    return uniq(rows.filter(x=>(!obra||x.planta===obra||x.obra===obra) && active(x.activo)!=='NO').map(x=>x[key]));
-  }
-  function fillOptions(id,items,selected,placeholder){
-    const el=document.getElementById(id); if(!el)return;
-    const valSel=norm(selected||el.value);
-    const final=uniq([valSel,...items]);
-    el.innerHTML='<option value="">'+placeholder+'</option>'+final.map(x=>`<option value="${x.replace(/"/g,'&quot;')}" ${x===valSel?'selected':''}>${x}</option>`).join('');
-  }
-  function refreshModalLists(selectedSector='',selectedSupervisor=''){
-    const obra=norm((document.getElementById('aObra')||{}).value);
-    fillOptions('aSector',getRows('sector',obra),selectedSector,'Seleccionar sector');
-    fillOptions('aSupervisorPlanta',getRows('supervisor',obra),selectedSupervisor,'Seleccionar supervisor');
-    const resp=document.getElementById('aResponsable'); if(resp && currentUser) resp.value=currentUser.nombre;
-  }
-  function jsonp(params,onOk){
-    const url=sheetUrl(); if(!url){toast('Pegá primero la URL del Web App de Google Sheets');return;}
-    const cb='catNormCb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const script=document.createElement('script');
-    window[cb]=function(res){try{onOk&&onOk(res)}finally{delete window[cb];script.remove();}};
-    script.onerror=function(){delete window[cb];script.remove();toast('No se pudieron leer las listas normalizadas');};
-    const q=new URLSearchParams({...params,callback:cb,_:Date.now()});
-    script.src=url+(url.includes('?')?'&':'?')+q.toString();
-    document.body.appendChild(script);
-  }
-  function formPost(action,payload,done){
-    const url=sheetUrl(); if(!url){toast('Pegá primero la URL del Web App de Google Sheets');return;}
-    const iframeName='catNormPost_'+Date.now();
-    const iframe=document.createElement('iframe'); iframe.name=iframeName; iframe.style.display='none'; document.body.appendChild(iframe);
-    const form=document.createElement('form'); form.method='POST'; form.action=url; form.target=iframeName; form.style.display='none';
-    const input=document.createElement('textarea'); input.name='payload'; input.value=JSON.stringify({action,...payload}); form.appendChild(input); document.body.appendChild(form);
-    try{form.submit(); setTimeout(()=>done&&done(),900);}catch(e){toast('No se pudo enviar a Sheets');}
-    setTimeout(()=>{try{form.remove();iframe.remove();}catch(e){}},12000);
-  }
-
-  window.syncLoadCatalogs=function(){
-    jsonp({action:'listCatalogos'},function(res){
-      if(!res||res.ok===false){toast(res?.error||'No se pudieron cargar las listas');return;}
-      catalogs().sectores=normalizeCatalogRows(res.sectores||[],'sector');
-      catalogs().supervisores=normalizeCatalogRows(res.supervisores||[],'supervisor');
-      persist();
-      refreshModalLists();
-      toast('Listas normalizadas desde Sheets');
-    });
-  };
-
-  window.addSectorFromModal=function(){
-    const planta=norm((document.getElementById('aObra')||{}).value); if(!planta){toast('Primero seleccioná una obra');return;}
-    const sector=norm(prompt('Nuevo sector para '+planta)); if(!sector)return;
-    if(!confirm('¿Querés agregar el sector "'+sector+'" a '+planta+'?'))return;
-    catalogs().sectores=normalizeCatalogRows([...(catalogs().sectores||[]),{planta,sector,activo:'SI'}],'sector');
-    persist(); refreshModalLists(sector,(document.getElementById('aSupervisorPlanta')||{}).value);
-    formPost('addSector',{planta,sector},()=>{toast('Sector agregado'); syncLoadCatalogs();});
-  };
-
-  window.addSupervisorFromModal=function(){
-    const planta=norm((document.getElementById('aObra')||{}).value); if(!planta){toast('Primero seleccioná una obra');return;}
-    const supervisor=norm(prompt('Nuevo supervisor de planta para '+planta)); if(!supervisor)return;
-    if(!confirm('¿Querés agregar el supervisor "'+supervisor+'" a '+planta+'?'))return;
-    catalogs().supervisores=normalizeCatalogRows([...(catalogs().supervisores||[]),{planta,supervisor,activo:'SI'}],'supervisor');
-    persist(); refreshModalLists((document.getElementById('aSector')||{}).value,supervisor);
-    formPost('addSupervisor',{planta,supervisor},()=>{toast('Supervisor agregado'); syncLoadCatalogs();});
-  };
-
-  const oldOpen=window.openAndamio;
-  window.openAndamio=function(id=''){
-    oldOpen&&oldOpen(id);
-    setTimeout(()=>{
-      const a=id?(db.andamios||[]).find(x=>x.id===id):null;
-      refreshModalLists(a?.sector||'',a?.supervisorPlanta||'');
-    },160);
-  };
-  try{ openAndamio=window.openAndamio; }catch(e){}
-})();
-
-
-
-/* ===== V2.8.3 - GITHUB PAGES + NAVEGACION MOVIL ===== */
-(function(){
-  const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
-  const SESSION_KEY = 'al_andamios_active_session_v283';
-  const STATE_KEY = 'al_andamios_nav_state_v283';
-  let internalRouteChange = false;
-
-  function safe(fn){ try{return fn&&fn()}catch(e){ console.warn('[v2.8.3]',e); } }
-  function page(id){ return document.getElementById(id); }
-  function saveState(state){
-    const old = readState();
-    localStorage.setItem(STATE_KEY, JSON.stringify({...old, ...state, ts: Date.now()}));
-  }
-  function readState(){
-    try { return JSON.parse(localStorage.getItem(STATE_KEY)||'{}') || {}; } catch(e){ return {}; }
-  }
-  function saveSession(){
-    if(currentUser) localStorage.setItem(SESSION_KEY, JSON.stringify({id:currentUser.id, ts:Date.now()}));
-  }
-  function readSession(){
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}') || {}; } catch(e){ return {}; }
-  }
-  function clearSession(){ localStorage.removeItem(SESSION_KEY); }
-  function forceUrl(){
-    safe(()=>{ cfg().sheetWebAppUrl = APP_SCRIPT_URL; persist(); });
-    const input = page('sheetWebAppUrl');
-    if(input) input.value = APP_SCRIPT_URL;
-  }
-  function setHash(module, view){
-    const next = module==='andamios' ? `#/andamios/${view||'andamios'}` : (module==='aislacion' ? '#/aislacion' : '#/plataformas');
-    if(location.hash !== next){ internalRouteChange = true; history.pushState({module,view}, '', next); setTimeout(()=>internalRouteChange=false,60); }
-  }
-  function showModule(module, view, fromRoute=false){
-    if(!currentUser) return;
-    saveState({module, view:view||'andamios'});
-    if(module==='andamios'){
-      page('loginPage')?.classList.add('hidden');
-      page('platformPage')?.classList.add('hidden');
-      page('aislacionPage')?.classList.add('hidden');
-      page('appPage')?.classList.remove('hidden');
-      if(fromRoute){ safe(()=>oldShowViewV283(view||'andamios')); }
-      else safe(()=>showView(view||'andamios'));
-      if(!fromRoute) setHash('andamios', view||'andamios');
-      return;
-    }
-    if(module==='aislacion'){
-      page('loginPage')?.classList.add('hidden');
-      page('platformPage')?.classList.add('hidden');
-      page('appPage')?.classList.add('hidden');
-      page('aislacionPage')?.classList.remove('hidden');
-      safe(()=>renderAislacionPage&&renderAislacionPage());
-      if(!fromRoute) setHash('aislacion');
-      return;
-    }
-    page('loginPage')?.classList.add('hidden');
-    page('appPage')?.classList.add('hidden');
-    page('aislacionPage')?.classList.add('hidden');
-    page('platformPage')?.classList.remove('hidden');
-    if(!fromRoute) setHash('platformas');
-  }
-  function routeFromHash(){
-    if(!currentUser) return;
-    const h=(location.hash||'').replace(/^#\/?/,'');
-    if(!h){ const st=readState(); return showModule(st.module||'platformas', st.view||'andamios', true); }
-    const parts=h.split('/').filter(Boolean);
-    if(parts[0]==='andamios') return showModule('andamios', parts[1]||'andamios', true);
-    if(parts[0]==='aislacion') return showModule('aislacion', '', true);
-    return showModule('platformas', '', true);
-  }
-  function autoSyncOnce(){
-    forceUrl();
-    setTimeout(()=>safe(()=>window.syncLoadCatalogs&&window.syncLoadCatalogs()), 500);
-    setTimeout(()=>safe(()=>window.syncLoadFromSheets&&window.syncLoadFromSheets()), 1100);
-  }
-
-  const oldLoginV283 = window.login || login;
-  window.login = function(){
-    oldLoginV283();
-    if(currentUser){
-      saveSession(); forceUrl(); saveState({module:'platformas', view:'andamios'}); setHash('platformas'); autoSyncOnce();
-    }
-  };
-  try{ login = window.login; }catch(e){}
-
-  const oldLogoutV283 = window.logout || logout;
-  window.logout = function(){
-    clearSession(); localStorage.removeItem(STATE_KEY);
-    oldLogoutV283();
-    if(location.hash) history.replaceState(null,'',location.pathname+location.search);
-  };
-  try{ logout = window.logout; }catch(e){}
-
-  window.oldShowViewV283 = window.showView || showView;
-  window.showView = function(v){
-    saveState({module:'andamios', view:v});
-    if(!internalRouteChange) setHash('andamios', v);
-    return oldShowViewV283(v);
-  };
-  try{ showView = window.showView; }catch(e){}
-
-  const oldBackToPlatformsV283 = window.backToPlatforms || backToPlatforms;
-  window.backToPlatforms = function(){
-    saveState({module:'platformas'}); setHash('platformas');
-    return oldBackToPlatformsV283();
-  };
-  try{ backToPlatforms = window.backToPlatforms; }catch(e){}
-
-  const oldEnterPlatformV283 = window.enterPlatform || enterPlatform;
-  window.enterPlatform = function(platform){
-    if(platform==='andamios') saveState({module:'andamios', view:'andamios'});
-    if(platform==='aislacion') saveState({module:'aislacion'});
-    setHash(platform==='andamios'?'andamios':(platform==='aislacion'?'aislacion':'platformas'), 'andamios');
-    return oldEnterPlatformV283(platform);
-  };
-  try{ enterPlatform = window.enterPlatform; }catch(e){}
-
-  window.addEventListener('hashchange', ()=>{ if(!internalRouteChange) routeFromHash(); });
-  window.addEventListener('popstate', ()=>{ if(!internalRouteChange) routeFromHash(); });
-
-  window.addEventListener('load', function(){
-    forceUrl();
-    const s = readSession();
-    if(s.id && !currentUser){
-      const u = (db.usuarios||[]).find(x=>String(x.id).toLowerCase()===String(s.id).toLowerCase() && x.activo!==false);
-      if(u){
-        setSessionUser(u);
-        saveSession();
-        page('loginPage')?.classList.add('hidden');
-        const st=readState();
-        showModule(st.module||'andamios', st.view||'andamios', true);
-        autoSyncOnce();
-      }
-    }
-    setTimeout(forceUrl, 1000);
-  });
-})();
-</script>
-</body>
-</html>
-
-<script>
-/* ===== V2.8.4 - DRIVE ARCHIVOS: fotos, documentos, FO46 y facturación ===== */
-(function(){
-  const DRIVE_VERSION='v2.8.4 Drive archivos';
-  const DEFAULT_SHEET_WEBAPP_URL='https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
-  function cfg(){ db.config=db.config||{}; return db.config; }
-  function sheetUrl(){ return (cfg().sheetWebAppUrl||DEFAULT_SHEET_WEBAPP_URL||'').trim(); }
-  function safeString(v){ return String(v==null?'':v); }
-  function isDataUrl(v){ return /^data:[^;]+;base64,/i.test(safeString(v)); }
-  function fileToDataUrl(file){
-    return new Promise((resolve,reject)=>{
-      const r=new FileReader();
-      r.onload=()=>resolve(r.result);
-      r.onerror=()=>reject(r.error||new Error('No se pudo leer el archivo'));
-      r.readAsDataURL(file);
-    });
-  }
-  function drivePost(action,payload,onQueued){
-    const url=sheetUrl();
-    if(!url){ toast('No está configurada la URL de Apps Script'); return; }
-    const iframeName='drivePostFrame_'+Date.now();
-    const iframe=document.createElement('iframe');
-    iframe.name=iframeName; iframe.style.display='none';
-    document.body.appendChild(iframe);
-    const form=document.createElement('form');
-    form.method='POST'; form.action=url; form.target=iframeName; form.style.display='none';
-    const input=document.createElement('textarea');
-    input.name='payload';
-    input.value=JSON.stringify({action,...payload});
-    form.appendChild(input);
-    document.body.appendChild(form);
-    try{
-      form.submit();
-      if(onQueued)onQueued();
-    }catch(err){
-      toast('No se pudo enviar el archivo a Drive');
-    }finally{
-      setTimeout(()=>{try{form.remove();iframe.remove();}catch(e){}},15000);
-    }
-  }
-  function categoryFromTipo(tipo){
-    const t=safeString(tipo).toLowerCase();
-    if(t.includes('fo46'))return 'FO46';
-    if(t.includes('fact'))return 'Facturación';
-    if(t.includes('foto adicional'))return 'Fotos Adicionales';
-    if(t.includes('foto'))return 'Fotos';
-    return 'Documentos';
-  }
-  function uploadFileToDrive(a,opts){
-    if(!a||!a.id)return;
-    if(!opts.fileData){ toast('No hay archivo para subir'); return; }
-    toast('Subiendo archivo a Drive...');
-    drivePost('uploadAndamioFile',{
-      andamioId:a.id,
-      category:opts.category||'Documentos',
-      tipo:opts.tipo||opts.category||'Documento',
-      relation:opts.relation||'',
-      fileRecordId:opts.fileRecordId||cryptoId(),
-      fileName:opts.fileName||'archivo',
-      mimeType:opts.mimeType||'',
-      fileData:opts.fileData,
-      usuario:currentUser?.nombre||currentUser?.id||''
-    },()=>{
-      toast('Archivo enviado a Drive. Actualizando...');
-      setTimeout(()=>{try{window.syncLoadFromSheets&&window.syncLoadFromSheets();}catch(e){}},7500);
-    });
-  }
-
-  // Foto principal: al guardar un andamio con foto base64, la sube a Drive/Fotos.
-  const previousSaveAndamio=window.saveAndamio || saveAndamio;
-  window.saveAndamio=function(){
-    let beforeId='';
-    try{ beforeId=val('andamioId'); }catch(e){}
-    let capturedPhoto='';
-    try{ capturedPhoto=photoData||''; }catch(e){}
-    previousSaveAndamio&&previousSaveAndamio();
-    if(!isDataUrl(capturedPhoto))return;
-    setTimeout(()=>{
-      let a=null;
-      if(beforeId)a=(db.andamios||[]).find(x=>x.id===beforeId);
-      if(!a)a=(db.andamios||[]).find(x=>isDataUrl(x.foto));
-      if(!a)return;
-      uploadFileToDrive(a,{category:'Fotos',tipo:'Foto principal',relation:'fotoPrincipal',fileName:'Foto_Principal.jpg',mimeType:'image/jpeg',fileData:capturedPhoto});
-    },450);
-  };
-  try{ saveAndamio=window.saveAndamio; }catch(e){}
-
-  // Documentos / Facturación / Fotos adicionales: ahora suben el archivo real a Drive.
-  window.openDocForm=function(andId,tipo){
-    const a=(db.andamios||[]).find(x=>x.id===andId); if(!a)return;
-    document.getElementById('docTitle').textContent='Agregar '+tipo+' · '+a.precinto;
-    document.getElementById('docBody').innerHTML=`<input type="hidden" id="docAnd" value="${andId}"><input type="hidden" id="docTipo" value="${tipo}"><div class="field"><label>Nombre del documento</label><input id="docNombre" placeholder="Ej: Permiso PT-001 / Memoria cálculo / Factura"></div><div class="field"><label>Archivo</label><input id="docFile" type="file"></div><div class="readOnlyHint">El archivo se guardará automáticamente en Drive, dentro de la carpeta del precinto y en la subcarpeta correspondiente.</div>`;
-    document.getElementById('docFoot').innerHTML=`<button class="btn ghost" onclick="closeModal('documentModal')">Cancelar</button><button class="btn primary" onclick="saveDoc()">Guardar en Drive</button>`;
-    openModal('documentModal');
-  };
-
-  window.saveDoc=async function(){
-    const a=(db.andamios||[]).find(x=>x.id===val('docAnd'));
-    const tipo=val('docTipo');
-    const file=document.getElementById('docFile')?.files?.[0];
-    const now=new Date().toISOString();
-    if(!a){toast('No se encontró el andamio');return;}
-    if(!file){toast('Seleccioná un archivo');return;}
-    const fileRecordId=cryptoId();
-    const nombre=val('docNombre')||file.name||tipo;
-    const category=categoryFromTipo(tipo);
-    try{
-      const dataUrl=await fileToDataUrl(file);
-      a.documentos=a.documentos||[];
-      a.historial=a.historial||[];
-      a.documentos.push({id:fileRecordId,tipo,nombre,fecha:now,usuario:currentUser?.nombre||'',driveId:'subiendo_a_drive',carpeta:category});
-      a.historial.push({fecha:now,accion:'Archivo enviado a Drive',usuario:currentUser?.nombre||'',detalle:`${tipo}: ${nombre}`});
-      persist(); closeModal('documentModal'); renderAll(); openDetail(a.id, category==='Facturación'?'facturacion':'documentos');
-      uploadFileToDrive(a,{category,tipo,fileRecordId,fileName:file.name||nombre,mimeType:file.type||'',fileData:dataUrl});
-    }catch(err){
-      toast('No se pudo leer el archivo');
-    }
-  };
-
-  // Botón específico para fotos adicionales.
-  window.openFotoAdicionalForm=function(andId){
-    const a=(db.andamios||[]).find(x=>x.id===andId); if(!a)return;
-    document.getElementById('docTitle').textContent='Agregar foto adicional · '+a.precinto;
-    document.getElementById('docBody').innerHTML=`<input type="hidden" id="docAnd" value="${andId}"><input type="hidden" id="docTipo" value="Foto adicional"><div class="field"><label>Descripción</label><input id="docNombre" placeholder="Ej: detalle de apoyo / acceso / interferencia"></div><div class="field"><label>Foto</label><input id="docFile" type="file" accept="image/*" capture="environment"></div><div class="readOnlyHint">La foto se guardará en Drive / Fotos Adicionales.</div>`;
-    document.getElementById('docFoot').innerHTML=`<button class="btn ghost" onclick="closeModal('documentModal')">Cancelar</button><button class="btn primary" onclick="saveDoc()">Subir foto</button>`;
-    openModal('documentModal');
-  };
-
-  const oldRenderFotos=window.renderFotos || renderFotos;
-  window.renderFotos=function(a){
-    const list=(a.photos||[]);
-    return `<div class="actions" style="margin-bottom:12px"><button class="btn primary" onclick="openFotoAdicionalForm('${a.id}')">+ Foto adicional</button></div><div class="gallery">${list.map(p=>{const src=p.fileUrl||p.driveUrl||p.data||'';return `<div class="galItem">${src?`<a href="${p.driveUrl||src}" target="_blank"><img src="${src}"></a>`:'📷'}<div>${p.tipo||'Foto'} · ${fmtDateTime(p.fecha)}<br>${p.nombre||''}</div></div>`}).join('')||'<div class="empty">Sin fotos adicionales</div>'}</div>`;
-  };
-  try{ renderFotos=window.renderFotos; }catch(e){}
-
-  window.renderDocs=function(a){
-    const docsReq=[['FO46',foStatus(a).txt,foStatus(a).cls],['Memoria de cálculo',requiereMemoria(a)?(hasDoc(a,'Memoria de cálculo')?'Cargada':'Falta memoria de cálculo'):'No corresponde',requiereMemoria(a)&&!hasDoc(a,'Memoria de cálculo')?'warn':'ok'],['Permiso de trabajo',permisoReq(a)?(hasDoc(a,'Permiso de trabajo')?'Cargado':'Falta permiso de trabajo'):'No requerido',permisoReq(a)&&!hasDoc(a,'Permiso de trabajo')?'warn':'ok'],['Adjuntos',(a.documentos||[]).filter(d=>d.tipo==='Adjunto').length+' archivos','blue']];
-    const rows=(a.documentos||[]).filter(d=>categoryFromTipo(d.tipo)!=='Facturación').map(d=>`<tr><td>${d.tipo}</td><td>${d.driveUrl||d.fileUrl?`<a href="${d.driveUrl||d.fileUrl}" target="_blank">${d.nombre}</a>`:d.nombre}</td><td>${fmtDateTime(d.fecha)}</td><td>${d.carpeta||categoryFromTipo(d.tipo)}</td></tr>`).join('')||'<tr><td colspan="4">Sin archivos</td></tr>';
-    return `<div class="docGrid">${docsReq.map(d=>`<div class="docCard"><h4>${d[0]}</h4><p><span class="badge ${d[2]}">${d[1]}</span></p>${d[0]!=='FO46'?`<button class="btn ghost" onclick="openDocForm('${a.id}','${d[0]==='Adjuntos'?'Adjunto':d[0]}')">Agregar / ver</button>`:`<button class="btn ghost" onclick="openDetail('${a.id}','fo46')">Ir a FO46</button>`}</div>`).join('')}</div><div class="card" style="box-shadow:none;margin-top:14px"><div class="cardHead"><h3>Archivos vinculados</h3></div><div class="tableWrap"><table><thead><tr><th>Tipo</th><th>Nombre</th><th>Fecha</th><th>Carpeta</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  };
-  try{ renderDocs=window.renderDocs; }catch(e){}
-
-  window.renderFact=function(a){
-    const dias=a.estado==='Desarmado'?Math.floor((new Date(a.updatedAt)-armadoDate(a))/86400000):status(a).days;
-    const docs=(a.documentos||[]).filter(d=>categoryFromTipo(d.tipo)==='Facturación');
-    return `<div class="detailData"><div class="detailBox"><small>m³</small><b>${m3(a)}</b></div><div class="detailBox"><small>Días permanencia</small><b>${dias}</b></div><div class="detailBox"><small>Estado de cobro</small><b>Pendiente definir</b></div><div class="detailBox"><small>Base para informe</small><b>${m3(a)} m³ entre fechas</b></div></div><div class="actions" style="margin:12px 0"><button class="btn primary" onclick="openDocForm('${a.id}','Facturación')">+ Subir facturación</button></div><div class="tableWrap"><table><thead><tr><th>Documento</th><th>Fecha</th><th>Drive</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${d.driveUrl||d.fileUrl?`<a href="${d.driveUrl||d.fileUrl}" target="_blank">${d.nombre}</a>`:d.nombre}</td><td>${fmtDateTime(d.fecha)}</td><td>${d.driveId||'-'}</td></tr>`).join('')||'<tr><td colspan="3">Sin archivos de facturación</td></tr>'}</tbody></table></div>`;
-  };
-  try{ renderFact=window.renderFact; }catch(e){}
-
-  console.log(DRIVE_VERSION+' activo');
-})();
-</script>
-<script>
-/* ===== FIX GUARDAR v2.8.6 ===== */
-(function(){
+  const APP_VERSION = 'v2.8.6 Core limpio';
   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
+  const SESSION_KEY = 'al_andamios_session_v286';
+  const VIEW_KEY = 'al_andamios_view_v286';
+  const CATALOG_KEY = 'al_andamios_catalogos_v286';
+  let syncBusy = false;
+  let sheetCatalogs = loadJson(CATALOG_KEY, {sectores:[],supervisores:[]});
 
-  function clean(v){ return String(v || '').trim(); }
-  function normPrecinto(v){ return clean(v).replace(/\s+/g,' ').toUpperCase(); }
-  function isBase64Image(v){ return String(v || '').startsWith('data:image'); }
-
-  function getVal(id){
-    const el = document.getElementById(id);
-    return el ? el.value : '';
+  function loadJson(k, fallback){ try{return JSON.parse(localStorage.getItem(k)) || fallback}catch(e){return fallback} }
+  function saveJson(k, v){ try{localStorage.setItem(k, JSON.stringify(v))}catch(e){} }
+  function clean(v){ return String(v ?? '').trim(); }
+  function norm(v){ return clean(v).replace(/\s+/g,' ').toUpperCase(); }
+  function nval(id){ const el=document.getElementById(id); return Number(String(el ? el.value : '').replace(',','.') || 0); }
+  function get(id){ const el=document.getElementById(id); return el ? el.value : ''; }
+  function set(id,v){ const el=document.getElementById(id); if(el) el.value = v ?? ''; }
+  function setHtml(id,v){ const el=document.getElementById(id); if(el) el.innerHTML = v ?? ''; }
+  function isDataUrl(v){ return String(v||'').startsWith('data:'); }
+  function fileIdFromUrl(url){ const s=String(url||''); let m=s.match(/[?&]id=([^&]+)/); if(m) return m[1]; m=s.match(/\/d\/([^/]+)/); if(m) return m[1]; return ''; }
+  function driveImageUrl(obj){
+    const id = clean(obj?.fotoFileId || obj?.driveId || fileIdFromUrl(obj?.fotoFileUrl || obj?.fileUrl || obj?.driveUrl || obj?.foto));
+    if(id) return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w1000';
+    return obj?.fotoFileUrl || obj?.fileUrl || obj?.data || obj?.foto || '';
+  }
+  function parseArray(v){ if(Array.isArray(v))return v; try{const x=JSON.parse(v||'[]'); return Array.isArray(x)?x:[]}catch(e){return []} }
+  function normalizeAndamio(a){
+    const out = {...a};
+    ['historial','fo46','photos','documentos'].forEach(k=>out[k]=parseArray(out[k]));
+    out.foto = driveImageUrl(out) || out.foto || '';
+    return out;
   }
 
   function jsonp(action, params={}){
-    return new Promise((resolve, reject)=>{
-      const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-      const s = document.createElement('script');
-
-      window[cb] = function(res){
-        delete window[cb];
-        s.remove();
-        resolve(res);
-      };
-
-      s.onerror = function(){
-        delete window[cb];
-        s.remove();
-        reject(new Error('No se pudo leer Google Sheets'));
-      };
-
-      const q = new URLSearchParams({
-        action,
-        callback: cb,
-        _: Date.now(),
-        ...params
-      });
-
-      s.src = WEBAPP_URL + '?' + q.toString();
+    return new Promise((resolve,reject)=>{
+      const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const s=document.createElement('script');
+      const timer=setTimeout(()=>{cleanup();reject(new Error('Tiempo agotado leyendo Google Sheets'))},20000);
+      function cleanup(){ clearTimeout(timer); try{delete window[cb]}catch(e){} try{s.remove()}catch(e){} }
+      window[cb]=res=>{cleanup();resolve(res)};
+      s.onerror=()=>{cleanup();reject(new Error('No se pudo conectar con Google Sheets'))};
+      const q=new URLSearchParams({action,callback:cb,_:Date.now(),...params});
+      s.src=WEBAPP_URL+'?'+q.toString();
       document.body.appendChild(s);
     });
   }
 
-  function postToSheet(action, payload){
-    return new Promise((resolve)=>{
-      const iframeName = 'post_' + Date.now();
-      const iframe = document.createElement('iframe');
-      iframe.name = iframeName;
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = WEBAPP_URL;
-      form.target = iframeName;
-      form.style.display = 'none';
-
-      const input = document.createElement('textarea');
-      input.name = 'payload';
-      input.value = JSON.stringify({ action, ...payload });
-
-      form.appendChild(input);
-      document.body.appendChild(form);
+  function postForm(action, payload={}){
+    return new Promise(resolve=>{
+      const iframeName='post_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const iframe=document.createElement('iframe');
+      iframe.name=iframeName; iframe.style.display='none';
+      const form=document.createElement('form');
+      form.method='POST'; form.action=WEBAPP_URL; form.target=iframeName; form.style.display='none';
+      const input=document.createElement('textarea');
+      input.name='payload'; input.value=JSON.stringify({action,...payload});
+      form.appendChild(input); document.body.appendChild(iframe); document.body.appendChild(form);
       form.submit();
-
-      setTimeout(()=>{
-        try{ form.remove(); iframe.remove(); }catch(e){}
-        resolve();
-      }, 1500);
+      setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){} resolve({ok:true})},1800);
     });
   }
 
-  function makeRecord(id){
+  function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  window.syncTestSheets = async function(){
+    try{ const r=await jsonp('ping'); toast(r && r.ok ? 'Conexión correcta con Sheets' : 'No se pudo conectar'); }
+    catch(e){ toast(e.message || 'Error de conexión'); }
+  };
+
+  window.syncLoadFromSheets = async function(){
+    if(syncBusy) return;
+    syncBusy=true;
+    try{
+      toast('Cargando datos desde Sheets...');
+      const [andRes,catRes] = await Promise.all([jsonp('listAndamios'), jsonp('listCatalogos').catch(()=>null)]);
+      if(!andRes || andRes.ok===false) throw new Error(andRes?.error || 'No se pudo leer Andamios');
+      db.andamios = (andRes.andamios || []).map(normalizeAndamio);
+      if(catRes && catRes.ok!==false){
+        sheetCatalogs = {sectores: catRes.sectores || [], supervisores: catRes.supervisores || []};
+        saveJson(CATALOG_KEY, sheetCatalogs);
+      }
+      persist();
+      fillSelects();
+      renderAll();
+      toast('Datos actualizados desde Sheets');
+    }catch(e){ console.error(e); toast(e.message || 'No se pudo leer Google Sheets'); }
+    finally{ syncBusy=false; }
+  };
+
+  window.syncEnsureDriveAll = async function(){
+    try{ toast('Creando carpetas Drive pendientes...'); await postForm('ensureDriveAll',{}); await delay(3500); await syncLoadFromSheets(); toast('Drive actualizado'); }
+    catch(e){ toast(e.message || 'No se pudo crear estructura Drive'); }
+  };
+
+  window.syncSaveAllToSheets = async function(){
+    toast('Enviando todo a Sheets...');
+    await postForm('replaceAndamios',{andamios:(db.andamios||[]).map(a=>prepareRecord(a))});
+    await delay(3500); await syncLoadFromSheets();
+  };
+
+  function sectoresDeObra(obra){
+    const fromSheet=(sheetCatalogs.sectores||[]).filter(x=>clean(x.activo||'SI').toUpperCase()!=='NO' && clean(x.planta||x.obra)===obra).map(x=>clean(x.sector));
+    const fromDb=(db.obras.find(o=>o.nombre===obra)?.sectores)||[];
+    return [...new Set([...fromSheet,...fromDb].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  }
+  function supervisoresDeObra(obra){
+    return [...new Set((sheetCatalogs.supervisores||[]).filter(x=>clean(x.activo||'SI').toUpperCase()!=='NO' && clean(x.planta||x.obra)===obra).map(x=>clean(x.supervisor)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  }
+  function options(list, selected=''){ return list.map(v=>`<option ${String(v)===String(selected)?'selected':''}>${v}</option>`).join(''); }
+
+  window.fillSelects = function(){
+    const obra=document.getElementById('aObra');
+    if(obra){
+      const current=obra.value || userObras()[0] || '';
+      obra.innerHTML=options(userObras(), current);
+      obra.onchange=()=>{ fillSectorSupervisor(); };
+      fillSectorSupervisor();
+    }
+    const resp=document.getElementById('oResponsables');
+    if(resp) resp.innerHTML=db.usuarios.filter(u=>u.rol==='supervisor').map(u=>`<option value="${u.id}">${u.nombre}</option>`).join('');
+  };
+
+  function fillSectorSupervisor(selectedSector='', selectedSup=''){
+    const obra=clean(get('aObra')) || userObras()[0] || '';
+    const sec=document.getElementById('aSector');
+    const sup=document.getElementById('aSupervisorPlanta');
+    if(sec){
+      const val=selectedSector || sec.value || '';
+      const list=sectoresDeObra(obra);
+      sec.innerHTML=options(list, val);
+      if(val && !list.includes(val)) sec.insertAdjacentHTML('afterbegin',`<option selected>${val}</option>`);
+    }
+    if(sup){
+      const val=selectedSup || sup.value || '';
+      const list=supervisoresDeObra(obra);
+      sup.innerHTML='<option value="">Sin supervisor</option>'+options(list, val);
+      if(val && !list.includes(val)) sup.insertAdjacentHTML('afterbegin',`<option selected>${val}</option>`);
+    }
+  }
+
+  window.addSectorFromModal = async function(){
+    const obra=clean(get('aObra')); const sector=clean(prompt('Nuevo sector para '+obra));
+    if(!obra||!sector) return;
+    if(!confirm('¿Agregar el sector "'+sector+'" a '+obra+'?')) return;
+    await postForm('addSector',{planta:obra,sector});
+    await delay(2200); await loadCatalogosOnly(); fillSectorSupervisor(sector, get('aSupervisorPlanta')); toast('Sector agregado');
+  };
+  window.addSupervisorFromModal = async function(){
+    const obra=clean(get('aObra')); const supervisor=clean(prompt('Nuevo supervisor de planta para '+obra));
+    if(!obra||!supervisor) return;
+    if(!confirm('¿Agregar el supervisor "'+supervisor+'" a '+obra+'?')) return;
+    await postForm('addSupervisor',{planta:obra,supervisor});
+    await delay(2200); await loadCatalogosOnly(); fillSectorSupervisor(get('aSector'), supervisor); toast('Supervisor agregado');
+  };
+  async function loadCatalogosOnly(){
+    try{ const r=await jsonp('listCatalogos'); if(r&&r.ok!==false){sheetCatalogs={sectores:r.sectores||[],supervisores:r.supervisores||[]}; saveJson(CATALOG_KEY,sheetCatalogs);} }catch(e){}
+  }
+
+  function tramoOverlap(inicio, fin, a, b){ return Math.max(0, Math.min(fin,b)-Math.max(inicio,a)); }
+  function montajeLabel(tipo){ return tipo==='E'?'E - Horas extras':tipo==='F'?'F - Sáb/Dom/Feriado':'N - Horas normales'; }
+  window.updateAndamioCalc = function(){
+    const l=nval('aLargo'), w=nval('aAncho'), h=nval('aAlto'), nivel=nval('aNivelMontaje');
+    const base=l*w, inicio=nivel, fin=nivel+h;
+    const med=base*h;
+    const d0=base*tramoOverlap(inicio,fin,0,6);
+    const d6=base*tramoOverlap(inicio,fin,6,20);
+    const d20=base*tramoOverlap(inicio,fin,20,9999);
+    [['aVolumenMedido',med],['aDist0',d0],['aDist6',d6],['aDist20',d20],['aVolumenConvertido',''],['aVolumenEstructura','']].forEach(([id,v])=>{ const el=document.getElementById(id); if(el) el.value = typeof v==='number' ? (v?Number(v).toFixed(2):'0.00') : v; });
+    set('aHorarioCalc', montajeLabel(get('aTipoMontaje')||'N'));
+  };
+
+  const baseOpenAndamio = window.openAndamio;
+  window.openAndamio = function(id=''){
+    baseOpenAndamio(id);
+    setTimeout(()=>{
+      const a=id ? (db.andamios||[]).find(x=>String(x.id)===String(id)) : null;
+      fillSectorSupervisor(a?.sector || '', a?.supervisorPlanta || '');
+      set('aResponsable', currentUser?.nombre || '');
+      const p=document.getElementById('aPrecinto'); if(p){p.readOnly=!!id; p.style.background= id ? '#eef2f7' : '#f9fafb';}
+      const estado=document.getElementById('aEstado'); if(estado && !id){estado.value='Activo';}
+      const tipo=document.getElementById('aTipoMontaje'); if(tipo && !tipo.dataset.bindClean){ tipo.addEventListener('change',updateAndamioCalc); tipo.dataset.bindClean='1'; }
+      updateAndamioCalc();
+    },100);
+  };
+
+  function prepareRecord(src){
+    const now=new Date().toISOString();
+    const old=src || {};
+    const rec={...old};
+    ['historial','fo46','photos','documentos'].forEach(k=>{rec[k]=JSON.stringify(parseArray(rec[k]));});
+    rec.codigo=''; rec.supervisorAL=''; rec.volumenConvertido=''; rec.volumenEstructura='';
+    rec.foto = isDataUrl(rec.foto) ? '' : (rec.foto||'');
+    rec.updatedAt = rec.updatedAt || now;
+    return rec;
+  }
+
+  function buildRecordFromForm(id){
     updateAndamioCalc();
-
-    const now = new Date().toISOString();
-    const old = id ? (db.andamios || []).find(x => String(x.id) === String(id)) : null;
-
-    return {
-      ...(old || {}),
+    const now=new Date().toISOString();
+    const old = id ? (db.andamios||[]).find(x=>String(x.id)===String(id)) : null;
+    const precinto = norm(get('aPrecinto'));
+    const record={
+      ...(old||{}),
       id: id || cryptoId(),
-      obra: getVal('aObra'),
-      sector: getVal('aSector'),
-      precinto: normPrecinto(getVal('aPrecinto')),
-      codigo: '',
-      tipo: getVal('aTipo'),
-      descripcion: getVal('aDescripcion'),
-      fechaMontaje: getVal('aFechaMontaje') || today(),
-      tipoMontaje: getVal('aTipoMontaje'),
-      nivelMontaje: getVal('aNivelMontaje'),
-      largo: getVal('aLargo'),
-      ancho: getVal('aAncho'),
-      alto: getVal('aAlto'),
-      volumenMedido: getVal('aVolumenMedido'),
-      dist0: getVal('aDist0'),
-      dist6: getVal('aDist6'),
-      dist20: getVal('aDist20'),
-      volumenConvertido: '',
-      extras: getVal('aExtras'),
-      feriados: getVal('aFeriados'),
-      volumenEstructura: '',
-      fecha: getVal('aFechaMontaje') || today(),
-      estado: getVal('aEstado') || 'Activo',
-      supervisorPlanta: getVal('aSupervisorPlanta'),
-      supervisorAL: '',
-      responsable: currentUser?.nombre || getVal('aResponsable') || '',
-      observaciones: getVal('aObservaciones'),
-      foto: isBase64Image(photoData) ? '' : (photoData || old?.foto || ''),
+      obra: clean(get('aObra')),
+      sector: clean(get('aSector')),
+      precinto,
+      codigo:'',
+      tipo: clean(get('aTipo')) || 'Montaje',
+      descripcion: clean(get('aDescripcion')),
+      fechaMontaje: clean(get('aFechaMontaje')) || today(),
+      tipoMontaje: clean(get('aTipoMontaje')) || 'N',
+      nivelMontaje: clean(get('aNivelMontaje')),
+      largo: clean(get('aLargo')),
+      ancho: clean(get('aAncho')),
+      alto: clean(get('aAlto')),
+      volumenMedido: clean(get('aVolumenMedido')),
+      dist0: clean(get('aDist0')),
+      dist6: clean(get('aDist6')),
+      dist20: clean(get('aDist20')),
+      volumenConvertido:'',
+      extras: clean(get('aTipoMontaje'))==='E'?'Sí':'No',
+      feriados: clean(get('aTipoMontaje'))==='F'?'Sí':'No',
+      volumenEstructura:'',
+      fecha: clean(get('aFechaMontaje')) || today(),
+      estado: clean(get('aEstado')) || 'Activo',
+      supervisorPlanta: clean(get('aSupervisorPlanta')),
+      supervisorAL:'',
+      responsable: currentUser?.nombre || '',
+      observaciones: clean(get('aObservaciones')),
+      foto: old?.foto || '',
       usuario: currentUser?.id || 'admin',
       createdAt: old?.createdAt || now,
       createdBy: old?.createdBy || currentUser?.id || 'admin',
       updatedAt: now,
       updatedBy: currentUser?.id || 'admin',
-      historial: old?.historial || [{
-        fecha: now,
-        accion: 'Armado',
-        usuario: currentUser?.nombre || 'admin',
-        detalle: 'Registro inicial del andamio.'
-      }],
+      historial: old?.historial || [{fecha:now,accion:'Armado',usuario:currentUser?.nombre||'admin',detalle:'Registro inicial del andamio.'}],
       fo46: old?.fo46 || [],
       photos: old?.photos || [],
       documentos: old?.documentos || []
     };
+    if(id && old){
+      const cambios=['obra','sector','descripcion','fechaMontaje','tipoMontaje','nivelMontaje','largo','ancho','alto','dist0','dist6','dist20','supervisorPlanta','responsable','observaciones'].filter(k=>String(old[k]||'')!==String(record[k]||''));
+      if(cambios.length && record.estado!=='Desarmado') record.estado='Modificado';
+      record.historial=[...parseArray(old.historial), {fecha:now,accion:record.estado==='Desarmado'?'Desarmado':'Actualización',usuario:currentUser?.nombre||'admin',detalle:cambios.length?'Datos actualizados: '+cambios.join(', '):'Actualización de registro'}];
+    }
+    return record;
+  }
+
+  async function confirmSaved(record){
+    const r=await jsonp('listAndamios');
+    if(!r || r.ok===false) throw new Error(r?.error || 'No se pudo confirmar guardado');
+    const rows=(r.andamios||[]).map(normalizeAndamio);
+    const saved=rows.find(x=>String(x.id)===String(record.id) || norm(x.precinto)===norm(record.precinto));
+    db.andamios=rows; persist(); renderAll();
+    return saved;
   }
 
   window.saveAndamio = async function(){
-    const id = getVal('andamioId');
-    const precinto = normPrecinto(getVal('aPrecinto'));
-
-    if(!precinto){
-      toast('El precinto es obligatorio');
-      return;
-    }
-
-    if(!getVal('aObra') || !getVal('aSector')){
-      toast('Completá obra y sector');
-      return;
-    }
-
+    const id=clean(get('andamioId'));
+    const precinto=norm(get('aPrecinto'));
+    if(!precinto){ toast('El precinto es obligatorio'); return; }
+    if(!clean(get('aObra')) || !clean(get('aSector'))){ toast('Completá obra y sector'); return; }
     try{
       toast('Validando precinto en Sheets...');
-      const res = await jsonp('listAndamios');
+      const listRes=await jsonp('listAndamios');
+      if(!listRes || listRes.ok===false) throw new Error(listRes?.error || 'No se pudo validar Sheets');
+      const dup=(listRes.andamios||[]).find(a=>norm(a.precinto)===precinto && String(a.id||'')!==String(id||''));
+      if(dup){ alert('El precinto '+precinto+' ya existe.\n\nObra: '+(dup.obra||'-')+'\nSector: '+(dup.sector||'-')+'\nEstado: '+(dup.estado||'-')+'\nResponsable: '+(dup.responsable||'-')); return; }
 
-      if(!res || res.ok === false){
-        toast('No se pudo validar con Google Sheets');
-        return;
+      const record=buildRecordFromForm(id);
+      toast('Guardando en Sheets...');
+      await postForm('upsertAndamio',{andamio:prepareRecord(record)});
+      await delay(3500);
+      let saved=await confirmSaved(record);
+      if(!saved){ toast('No se confirmó el guardado'); return; }
+
+      if(photoData && isDataUrl(photoData)){
+        toast('Subiendo foto principal a Drive...');
+        await postForm('uploadAndamioFile',{andamioId:saved.id,category:'Fotos',relation:'fotoPrincipal',tipo:'Foto principal',fileName:(saved.precinto||'foto')+'.jpg',fileData:photoData,usuario:currentUser?.nombre||''});
+        await delay(5500);
+        await syncLoadFromSheets();
       }
-
-      const rows = res.andamios || [];
-      const duplicado = rows.find(a =>
-        normPrecinto(a.precinto) === precinto &&
-        String(a.id || '') !== String(id || '')
-      );
-
-      if(duplicado){
-        alert(
-          'El precinto ' + precinto + ' ya existe.\n\n' +
-          'Obra: ' + (duplicado.obra || '-') + '\n' +
-          'Sector: ' + (duplicado.sector || '-') + '\n' +
-          'Estado: ' + (duplicado.estado || '-') + '\n' +
-          'Responsable: ' + (duplicado.responsable || '-')
-        );
-        return;
-      }
-
-      const record = makeRecord(id);
-
-      const idx = (db.andamios || []).findIndex(x => String(x.id) === String(record.id));
-      if(idx >= 0) db.andamios[idx] = record;
-      else db.andamios.unshift(record);
-
-      persist();
       closeModal('andamioModal');
-      renderAll();
-
-      toast('Guardando en Google Sheets...');
-      await postToSheet('upsertAndamio', { andamio: record });
-
-      toast('Guardado. Actualizando desde Sheets...');
-      setTimeout(()=>{
-        try{ window.syncLoadFromSheets && window.syncLoadFromSheets(); }catch(e){}
-      }, 3500);
-
-    }catch(err){
-      toast('Error al guardar');
-      console.error(err);
-    }
+      toast(id?'Andamio actualizado':'Andamio guardado');
+    }catch(e){ console.error(e); toast(e.message || 'Error al guardar'); }
   };
+
+  window.andamioCard = function(a){
+    const s=status(a),os=operativeStatus(a),fo=foStatus(a),warns=docWarns(a),med=`${a.largo||0} x ${a.ancho||0} x ${a.alto||0} m`, img=driveImageUrl(a);
+    return `<article class="andamioCard" onclick="openDetail('${a.id}')"><div class="andamioPhoto">${img?`<img src="${img}" alt="Foto ${a.precinto}">`:'📷'}</div><div class="andamioInfo"><div class="andamioTop"><div class="andamioPrec">${a.precinto}</div><span class="statusBadge ${os.cls}">${os.txt}</span></div><div class="andamioSector">${a.sector||'-'}</div><div class="andamioMeasures">${med} · ${m3(a)} m³</div><div class="andamioDesc">${a.descripcion||'Sin descripción'} · ${a.obra}</div><div class="andamioMeta"><span class="badge ${fo.cls}">${fo.txt}</span>${warns.map(w=>`<span class="badge warn">⚠️ ${w}</span>`).join('')}<span class="badge blue">📷 ${(a.photos||[]).length}</span></div><div class="actions"><button class="btn ghost" onclick="event.stopPropagation();openDetail('${a.id}')">Ver detalle</button><button class="btn primary" onclick="event.stopPropagation();openAndamio('${a.id}')">Modificar</button></div></div></article>`;
+  };
+  try{ andamioCard=window.andamioCard; }catch(e){}
+
+  const baseOpenDetail = window.openDetail;
+  window.openDetail = function(id,tab='general'){
+    const a=(db.andamios||[]).find(x=>String(x.id)===String(id));
+    if(a) a.foto = driveImageUrl(a);
+    baseOpenDetail(id,tab);
+  };
+
+  window.renderFotos = function(a){
+    const list=parseArray(a.photos);
+    return `<div class="actions" style="margin-bottom:12px"><button class="btn primary" onclick="openFotoAdicionalForm('${a.id}')">+ Foto adicional</button></div><div class="gallery">${list.map(p=>{const img=driveImageUrl(p);const link=p.driveUrl||p.fileUrl||img;return `<div class="galItem">${img?`<a href="${link}" target="_blank"><img src="${img}"></a>`:'📷'}<div><b>${p.tipo||'Foto'}</b><br>${fmtDateTime(p.fecha)}<br>${p.nombre||''}</div></div>`}).join('')||'<div class="empty">Sin fotografías</div>'}</div>`;
+  };
+  try{ renderFotos=window.renderFotos; }catch(e){}
+
+  function categoryFromTipo(tipo){ const s=clean(tipo).toLowerCase(); if(s.includes('fact'))return 'Facturación'; if(s.includes('fo46'))return 'FO46'; if(s.includes('foto'))return 'Fotos Adicionales'; return 'Documentos'; }
+
+  window.openDocForm = function(andId,tipo='Adjunto'){
+    const a=db.andamios.find(x=>x.id===andId); if(!a)return;
+    setHtml('docTitle','Subir archivo · '+tipo+' · '+a.precinto);
+    setHtml('docBody',`<input type="hidden" id="docAnd" value="${andId}"><input type="hidden" id="docTipo" value="${tipo}"><div class="field"><label>Nombre / descripción</label><input id="docNombre" placeholder="Ej: permiso, memoria, factura..."></div><div class="field"><label>Archivo</label><input id="docFile" type="file"></div><div class="readOnlyHint">Se guardará en Drive / ${categoryFromTipo(tipo)}.</div>`);
+    setHtml('docFoot',`<button class="btn ghost" onclick="closeModal('documentModal')">Cancelar</button><button class="btn primary" onclick="saveDoc()">Subir archivo</button>`);
+    openModal('documentModal');
+  };
+  window.openFotoAdicionalForm = function(andId){
+    const a=db.andamios.find(x=>x.id===andId); if(!a)return;
+    setHtml('docTitle','Agregar foto adicional · '+a.precinto);
+    setHtml('docBody',`<input type="hidden" id="docAnd" value="${andId}"><input type="hidden" id="docTipo" value="Foto adicional"><div class="field"><label>Descripción</label><input id="docNombre" placeholder="Ej: detalle de apoyo / acceso"></div><div class="field"><label>Foto</label><input id="docFile" type="file" accept="image/*" capture="environment"></div><div class="readOnlyHint">La foto se guardará en Drive / Fotos Adicionales.</div>`);
+    setHtml('docFoot',`<button class="btn ghost" onclick="closeModal('documentModal')">Cancelar</button><button class="btn primary" onclick="saveDoc()">Subir foto</button>`);
+    openModal('documentModal');
+  };
+  window.saveDoc = function(){
+    const andId=get('docAnd'), tipo=get('docTipo'), name=clean(get('docNombre'));
+    const file=document.getElementById('docFile')?.files?.[0];
+    if(!andId||!file){toast('Seleccioná un archivo');return;}
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      try{
+        toast('Subiendo archivo a Drive...');
+        const category=categoryFromTipo(tipo);
+        await postForm('uploadAndamioFile',{andamioId:andId,category,tipo,nombre:name||file.name,fileName:file.name,fileData:reader.result,mimeType:file.type,usuario:currentUser?.nombre||''});
+        await delay(5500); await syncLoadFromSheets(); closeModal('documentModal'); openDetail(andId, category==='Facturación'?'facturacion':category==='Fotos Adicionales'?'fotos':'documentos'); toast('Archivo subido');
+      }catch(e){toast(e.message||'Error al subir archivo');}
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.renderDocs = function(a){
+    const docs=parseArray(a.documentos).filter(d=>categoryFromTipo(d.tipo)!=='Facturación');
+    const rows=docs.map(d=>`<tr><td>${d.tipo||'-'}</td><td>${d.driveUrl||d.fileUrl?`<a href="${d.driveUrl||d.fileUrl}" target="_blank">${d.nombre||'Abrir'}</a>`:(d.nombre||'-')}</td><td>${fmtDateTime(d.fecha)}</td><td>${d.carpeta||categoryFromTipo(d.tipo)}</td></tr>`).join('')||'<tr><td colspan="4">Sin archivos</td></tr>';
+    return `<div class="docGrid"><div class="docCard"><h4>Memoria de cálculo</h4><p><span class="badge ${requiereMemoria(a)&&!hasDoc(a,'Memoria de cálculo')?'warn':'ok'}">${requiereMemoria(a)?(hasDoc(a,'Memoria de cálculo')?'Cargada':'Falta memoria'):'No corresponde'}</span></p><button class="btn ghost" onclick="openDocForm('${a.id}','Memoria de cálculo')">Agregar</button></div><div class="docCard"><h4>Permiso de trabajo</h4><p><span class="badge ${permisoReq(a)&&!hasDoc(a,'Permiso de trabajo')?'warn':'ok'}">${permisoReq(a)?(hasDoc(a,'Permiso de trabajo')?'Cargado':'Falta permiso'):'No requerido'}</span></p><button class="btn ghost" onclick="openDocForm('${a.id}','Permiso de trabajo')">Agregar</button></div><div class="docCard"><h4>Adjuntos</h4><p><span class="badge blue">${docs.length} archivos</span></p><button class="btn ghost" onclick="openDocForm('${a.id}','Adjunto')">Agregar</button></div></div><div class="card" style="box-shadow:none;margin-top:14px"><div class="cardHead"><h3>Archivos vinculados</h3></div><div class="tableWrap"><table><thead><tr><th>Tipo</th><th>Nombre</th><th>Fecha</th><th>Carpeta</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  };
+  try{ renderDocs=window.renderDocs; }catch(e){}
+
+  window.renderFact = function(a){
+    const docs=parseArray(a.documentos).filter(d=>categoryFromTipo(d.tipo)==='Facturación');
+    return `<div class="detailData"><div class="detailBox"><small>m³</small><b>${m3(a)}</b></div><div class="detailBox"><small>Estado de cobro</small><b>Pendiente definir</b></div></div><div class="actions" style="margin:12px 0"><button class="btn primary" onclick="openDocForm('${a.id}','Facturación')">+ Subir facturación</button></div><div class="tableWrap"><table><thead><tr><th>Documento</th><th>Fecha</th><th>Drive</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${d.driveUrl||d.fileUrl?`<a href="${d.driveUrl||d.fileUrl}" target="_blank">${d.nombre||'Abrir'}</a>`:(d.nombre||'-')}</td><td>${fmtDateTime(d.fecha)}</td><td>${d.driveId||'-'}</td></tr>`).join('')||'<tr><td colspan="3">Sin archivos de facturación</td></tr>'}</tbody></table></div>`;
+  };
+  try{ renderFact=window.renderFact; }catch(e){}
+
+  const baseRenderConfig = window.renderConfig;
+  window.renderConfig = function(){
+    baseRenderConfig();
+    const host=document.getElementById('view-config'); if(!host || document.getElementById('sheetSyncPanel')) return;
+    host.insertAdjacentHTML('beforeend',`<div class="card" id="sheetSyncPanel"><div class="cardHead"><h3>Sincronización</h3><span class="badge blue">${APP_VERSION}</span></div><div class="readOnlyHint">Versión limpia: un solo flujo de guardado, lectura desde Sheets y Drive.</div><div class="actions"><button class="btn warn" onclick="syncTestSheets()">Probar conexión</button><button class="btn primary" onclick="syncLoadFromSheets()">Cargar desde Sheets</button><button class="btn ok" onclick="syncSaveAllToSheets()">Enviar todo a Sheets</button><button class="btn ghost" onclick="syncEnsureDriveAll()">Crear carpetas Drive pendientes</button></div></div>`);
+  };
+
+  const baseLogin=window.login;
+  window.login=function(){ baseLogin(); if(currentUser){saveJson(SESSION_KEY,{id:currentUser.id,ts:Date.now()}); setTimeout(()=>syncLoadFromSheets(),900);} };
+  const baseLogout=window.logout;
+  window.logout=function(){ localStorage.removeItem(SESSION_KEY); if(baseLogout)baseLogout(); };
+  const baseShowView=window.showView;
+  window.showView=function(v){ saveJson(VIEW_KEY,{view:v,ts:Date.now()}); baseShowView(v); try{history.pushState({view:v},'', '#/'+v)}catch(e){} };
+  window.addEventListener('popstate',()=>{ const h=(location.hash||'').replace('#/',''); if(h) baseShowView(h); });
+
+  window.addEventListener('load',()=>{
+    setTimeout(()=>{
+      const saved=loadJson(SESSION_KEY,null);
+      if(saved && !currentUser){
+        const u=(db.usuarios||[]).find(x=>x.id===saved.id);
+        if(u){
+          currentUser=u;
+          document.getElementById('loginPage')?.classList.add('hidden');
+          document.getElementById('platformPage')?.classList.add('hidden');
+          document.getElementById('appPage')?.classList.remove('hidden');
+          const v=(loadJson(VIEW_KEY,{view:'andamios'}).view)||'andamios';
+          baseShowView(v);
+          syncLoadFromSheets();
+        }
+      }
+    },500);
+  });
+
+  console.log(APP_VERSION+' activo');
 })();
+
 </script>
+</body>
+</html>
