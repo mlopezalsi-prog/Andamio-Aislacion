@@ -1708,3 +1708,156 @@ function aisInformeWhatsApp(){
 </script>
 </body>
 </html>
+
+<script>
+/* ===== V2.8.4 - DRIVE ARCHIVOS: fotos, documentos, FO46 y facturación ===== */
+(function(){
+  const DRIVE_VERSION='v2.8.4 Drive archivos';
+  const DEFAULT_SHEET_WEBAPP_URL='https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
+  function cfg(){ db.config=db.config||{}; return db.config; }
+  function sheetUrl(){ return (cfg().sheetWebAppUrl||DEFAULT_SHEET_WEBAPP_URL||'').trim(); }
+  function safeString(v){ return String(v==null?'':v); }
+  function isDataUrl(v){ return /^data:[^;]+;base64,/i.test(safeString(v)); }
+  function fileToDataUrl(file){
+    return new Promise((resolve,reject)=>{
+      const r=new FileReader();
+      r.onload=()=>resolve(r.result);
+      r.onerror=()=>reject(r.error||new Error('No se pudo leer el archivo'));
+      r.readAsDataURL(file);
+    });
+  }
+  function drivePost(action,payload,onQueued){
+    const url=sheetUrl();
+    if(!url){ toast('No está configurada la URL de Apps Script'); return; }
+    const iframeName='drivePostFrame_'+Date.now();
+    const iframe=document.createElement('iframe');
+    iframe.name=iframeName; iframe.style.display='none';
+    document.body.appendChild(iframe);
+    const form=document.createElement('form');
+    form.method='POST'; form.action=url; form.target=iframeName; form.style.display='none';
+    const input=document.createElement('textarea');
+    input.name='payload';
+    input.value=JSON.stringify({action,...payload});
+    form.appendChild(input);
+    document.body.appendChild(form);
+    try{
+      form.submit();
+      if(onQueued)onQueued();
+    }catch(err){
+      toast('No se pudo enviar el archivo a Drive');
+    }finally{
+      setTimeout(()=>{try{form.remove();iframe.remove();}catch(e){}},15000);
+    }
+  }
+  function categoryFromTipo(tipo){
+    const t=safeString(tipo).toLowerCase();
+    if(t.includes('fo46'))return 'FO46';
+    if(t.includes('fact'))return 'Facturación';
+    if(t.includes('foto adicional'))return 'Fotos Adicionales';
+    if(t.includes('foto'))return 'Fotos';
+    return 'Documentos';
+  }
+  function uploadFileToDrive(a,opts){
+    if(!a||!a.id)return;
+    if(!opts.fileData){ toast('No hay archivo para subir'); return; }
+    toast('Subiendo archivo a Drive...');
+    drivePost('uploadAndamioFile',{
+      andamioId:a.id,
+      category:opts.category||'Documentos',
+      tipo:opts.tipo||opts.category||'Documento',
+      relation:opts.relation||'',
+      fileRecordId:opts.fileRecordId||cryptoId(),
+      fileName:opts.fileName||'archivo',
+      mimeType:opts.mimeType||'',
+      fileData:opts.fileData,
+      usuario:currentUser?.nombre||currentUser?.id||''
+    },()=>{
+      toast('Archivo enviado a Drive. Actualizando...');
+      setTimeout(()=>{try{window.syncLoadFromSheets&&window.syncLoadFromSheets();}catch(e){}},7500);
+    });
+  }
+
+  // Foto principal: al guardar un andamio con foto base64, la sube a Drive/Fotos.
+  const previousSaveAndamio=window.saveAndamio || saveAndamio;
+  window.saveAndamio=function(){
+    let beforeId='';
+    try{ beforeId=val('andamioId'); }catch(e){}
+    let capturedPhoto='';
+    try{ capturedPhoto=photoData||''; }catch(e){}
+    previousSaveAndamio&&previousSaveAndamio();
+    if(!isDataUrl(capturedPhoto))return;
+    setTimeout(()=>{
+      let a=null;
+      if(beforeId)a=(db.andamios||[]).find(x=>x.id===beforeId);
+      if(!a)a=(db.andamios||[]).find(x=>isDataUrl(x.foto));
+      if(!a)return;
+      uploadFileToDrive(a,{category:'Fotos',tipo:'Foto principal',relation:'fotoPrincipal',fileName:'Foto_Principal.jpg',mimeType:'image/jpeg',fileData:capturedPhoto});
+    },450);
+  };
+  try{ saveAndamio=window.saveAndamio; }catch(e){}
+
+  // Documentos / Facturación / Fotos adicionales: ahora suben el archivo real a Drive.
+  window.openDocForm=function(andId,tipo){
+    const a=(db.andamios||[]).find(x=>x.id===andId); if(!a)return;
+    document.getElementById('docTitle').textContent='Agregar '+tipo+' · '+a.precinto;
+    document.getElementById('docBody').innerHTML=`<input type="hidden" id="docAnd" value="${andId}"><input type="hidden" id="docTipo" value="${tipo}"><div class="field"><label>Nombre del documento</label><input id="docNombre" placeholder="Ej: Permiso PT-001 / Memoria cálculo / Factura"></div><div class="field"><label>Archivo</label><input id="docFile" type="file"></div><div class="readOnlyHint">El archivo se guardará automáticamente en Drive, dentro de la carpeta del precinto y en la subcarpeta correspondiente.</div>`;
+    document.getElementById('docFoot').innerHTML=`<button class="btn ghost" onclick="closeModal('documentModal')">Cancelar</button><button class="btn primary" onclick="saveDoc()">Guardar en Drive</button>`;
+    openModal('documentModal');
+  };
+
+  window.saveDoc=async function(){
+    const a=(db.andamios||[]).find(x=>x.id===val('docAnd'));
+    const tipo=val('docTipo');
+    const file=document.getElementById('docFile')?.files?.[0];
+    const now=new Date().toISOString();
+    if(!a){toast('No se encontró el andamio');return;}
+    if(!file){toast('Seleccioná un archivo');return;}
+    const fileRecordId=cryptoId();
+    const nombre=val('docNombre')||file.name||tipo;
+    const category=categoryFromTipo(tipo);
+    try{
+      const dataUrl=await fileToDataUrl(file);
+      a.documentos=a.documentos||[];
+      a.historial=a.historial||[];
+      a.documentos.push({id:fileRecordId,tipo,nombre,fecha:now,usuario:currentUser?.nombre||'',driveId:'subiendo_a_drive',carpeta:category});
+      a.historial.push({fecha:now,accion:'Archivo enviado a Drive',usuario:currentUser?.nombre||'',detalle:`${tipo}: ${nombre}`});
+      persist(); closeModal('documentModal'); renderAll(); openDetail(a.id, category==='Facturación'?'facturacion':'documentos');
+      uploadFileToDrive(a,{category,tipo,fileRecordId,fileName:file.name||nombre,mimeType:file.type||'',fileData:dataUrl});
+    }catch(err){
+      toast('No se pudo leer el archivo');
+    }
+  };
+
+  // Botón específico para fotos adicionales.
+  window.openFotoAdicionalForm=function(andId){
+    const a=(db.andamios||[]).find(x=>x.id===andId); if(!a)return;
+    document.getElementById('docTitle').textContent='Agregar foto adicional · '+a.precinto;
+    document.getElementById('docBody').innerHTML=`<input type="hidden" id="docAnd" value="${andId}"><input type="hidden" id="docTipo" value="Foto adicional"><div class="field"><label>Descripción</label><input id="docNombre" placeholder="Ej: detalle de apoyo / acceso / interferencia"></div><div class="field"><label>Foto</label><input id="docFile" type="file" accept="image/*" capture="environment"></div><div class="readOnlyHint">La foto se guardará en Drive / Fotos Adicionales.</div>`;
+    document.getElementById('docFoot').innerHTML=`<button class="btn ghost" onclick="closeModal('documentModal')">Cancelar</button><button class="btn primary" onclick="saveDoc()">Subir foto</button>`;
+    openModal('documentModal');
+  };
+
+  const oldRenderFotos=window.renderFotos || renderFotos;
+  window.renderFotos=function(a){
+    const list=(a.photos||[]);
+    return `<div class="actions" style="margin-bottom:12px"><button class="btn primary" onclick="openFotoAdicionalForm('${a.id}')">+ Foto adicional</button></div><div class="gallery">${list.map(p=>{const src=p.fileUrl||p.driveUrl||p.data||'';return `<div class="galItem">${src?`<a href="${p.driveUrl||src}" target="_blank"><img src="${src}"></a>`:'📷'}<div>${p.tipo||'Foto'} · ${fmtDateTime(p.fecha)}<br>${p.nombre||''}</div></div>`}).join('')||'<div class="empty">Sin fotos adicionales</div>'}</div>`;
+  };
+  try{ renderFotos=window.renderFotos; }catch(e){}
+
+  window.renderDocs=function(a){
+    const docsReq=[['FO46',foStatus(a).txt,foStatus(a).cls],['Memoria de cálculo',requiereMemoria(a)?(hasDoc(a,'Memoria de cálculo')?'Cargada':'Falta memoria de cálculo'):'No corresponde',requiereMemoria(a)&&!hasDoc(a,'Memoria de cálculo')?'warn':'ok'],['Permiso de trabajo',permisoReq(a)?(hasDoc(a,'Permiso de trabajo')?'Cargado':'Falta permiso de trabajo'):'No requerido',permisoReq(a)&&!hasDoc(a,'Permiso de trabajo')?'warn':'ok'],['Adjuntos',(a.documentos||[]).filter(d=>d.tipo==='Adjunto').length+' archivos','blue']];
+    const rows=(a.documentos||[]).filter(d=>categoryFromTipo(d.tipo)!=='Facturación').map(d=>`<tr><td>${d.tipo}</td><td>${d.driveUrl||d.fileUrl?`<a href="${d.driveUrl||d.fileUrl}" target="_blank">${d.nombre}</a>`:d.nombre}</td><td>${fmtDateTime(d.fecha)}</td><td>${d.carpeta||categoryFromTipo(d.tipo)}</td></tr>`).join('')||'<tr><td colspan="4">Sin archivos</td></tr>';
+    return `<div class="docGrid">${docsReq.map(d=>`<div class="docCard"><h4>${d[0]}</h4><p><span class="badge ${d[2]}">${d[1]}</span></p>${d[0]!=='FO46'?`<button class="btn ghost" onclick="openDocForm('${a.id}','${d[0]==='Adjuntos'?'Adjunto':d[0]}')">Agregar / ver</button>`:`<button class="btn ghost" onclick="openDetail('${a.id}','fo46')">Ir a FO46</button>`}</div>`).join('')}</div><div class="card" style="box-shadow:none;margin-top:14px"><div class="cardHead"><h3>Archivos vinculados</h3></div><div class="tableWrap"><table><thead><tr><th>Tipo</th><th>Nombre</th><th>Fecha</th><th>Carpeta</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  };
+  try{ renderDocs=window.renderDocs; }catch(e){}
+
+  window.renderFact=function(a){
+    const dias=a.estado==='Desarmado'?Math.floor((new Date(a.updatedAt)-armadoDate(a))/86400000):status(a).days;
+    const docs=(a.documentos||[]).filter(d=>categoryFromTipo(d.tipo)==='Facturación');
+    return `<div class="detailData"><div class="detailBox"><small>m³</small><b>${m3(a)}</b></div><div class="detailBox"><small>Días permanencia</small><b>${dias}</b></div><div class="detailBox"><small>Estado de cobro</small><b>Pendiente definir</b></div><div class="detailBox"><small>Base para informe</small><b>${m3(a)} m³ entre fechas</b></div></div><div class="actions" style="margin:12px 0"><button class="btn primary" onclick="openDocForm('${a.id}','Facturación')">+ Subir facturación</button></div><div class="tableWrap"><table><thead><tr><th>Documento</th><th>Fecha</th><th>Drive</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${d.driveUrl||d.fileUrl?`<a href="${d.driveUrl||d.fileUrl}" target="_blank">${d.nombre}</a>`:d.nombre}</td><td>${fmtDateTime(d.fecha)}</td><td>${d.driveId||'-'}</td></tr>`).join('')||'<tr><td colspan="3">Sin archivos de facturación</td></tr>'}</tbody></table></div>`;
+  };
+  try{ renderFact=window.renderFact; }catch(e){}
+
+  console.log(DRIVE_VERSION+' activo');
+})();
+</script>
