@@ -1861,3 +1861,193 @@ function aisInformeWhatsApp(){
   console.log(DRIVE_VERSION+' activo');
 })();
 </script>
+<script>
+/* ===== FIX GUARDAR v2.8.6 ===== */
+(function(){
+  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwT3S0QMtplcsHNTgrPpXw-pjQXBcfiXiaknpZXAWOFFCwZT5BiyoUTjj-G6X1UdVOQ2g/exec';
+
+  function clean(v){ return String(v || '').trim(); }
+  function normPrecinto(v){ return clean(v).replace(/\s+/g,' ').toUpperCase(); }
+  function isBase64Image(v){ return String(v || '').startsWith('data:image'); }
+
+  function getVal(id){
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
+  function jsonp(action, params={}){
+    return new Promise((resolve, reject)=>{
+      const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const s = document.createElement('script');
+
+      window[cb] = function(res){
+        delete window[cb];
+        s.remove();
+        resolve(res);
+      };
+
+      s.onerror = function(){
+        delete window[cb];
+        s.remove();
+        reject(new Error('No se pudo leer Google Sheets'));
+      };
+
+      const q = new URLSearchParams({
+        action,
+        callback: cb,
+        _: Date.now(),
+        ...params
+      });
+
+      s.src = WEBAPP_URL + '?' + q.toString();
+      document.body.appendChild(s);
+    });
+  }
+
+  function postToSheet(action, payload){
+    return new Promise((resolve)=>{
+      const iframeName = 'post_' + Date.now();
+      const iframe = document.createElement('iframe');
+      iframe.name = iframeName;
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = WEBAPP_URL;
+      form.target = iframeName;
+      form.style.display = 'none';
+
+      const input = document.createElement('textarea');
+      input.name = 'payload';
+      input.value = JSON.stringify({ action, ...payload });
+
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+
+      setTimeout(()=>{
+        try{ form.remove(); iframe.remove(); }catch(e){}
+        resolve();
+      }, 1500);
+    });
+  }
+
+  function makeRecord(id){
+    updateAndamioCalc();
+
+    const now = new Date().toISOString();
+    const old = id ? (db.andamios || []).find(x => String(x.id) === String(id)) : null;
+
+    return {
+      ...(old || {}),
+      id: id || cryptoId(),
+      obra: getVal('aObra'),
+      sector: getVal('aSector'),
+      precinto: normPrecinto(getVal('aPrecinto')),
+      codigo: '',
+      tipo: getVal('aTipo'),
+      descripcion: getVal('aDescripcion'),
+      fechaMontaje: getVal('aFechaMontaje') || today(),
+      tipoMontaje: getVal('aTipoMontaje'),
+      nivelMontaje: getVal('aNivelMontaje'),
+      largo: getVal('aLargo'),
+      ancho: getVal('aAncho'),
+      alto: getVal('aAlto'),
+      volumenMedido: getVal('aVolumenMedido'),
+      dist0: getVal('aDist0'),
+      dist6: getVal('aDist6'),
+      dist20: getVal('aDist20'),
+      volumenConvertido: '',
+      extras: getVal('aExtras'),
+      feriados: getVal('aFeriados'),
+      volumenEstructura: '',
+      fecha: getVal('aFechaMontaje') || today(),
+      estado: getVal('aEstado') || 'Activo',
+      supervisorPlanta: getVal('aSupervisorPlanta'),
+      supervisorAL: '',
+      responsable: currentUser?.nombre || getVal('aResponsable') || '',
+      observaciones: getVal('aObservaciones'),
+      foto: isBase64Image(photoData) ? '' : (photoData || old?.foto || ''),
+      usuario: currentUser?.id || 'admin',
+      createdAt: old?.createdAt || now,
+      createdBy: old?.createdBy || currentUser?.id || 'admin',
+      updatedAt: now,
+      updatedBy: currentUser?.id || 'admin',
+      historial: old?.historial || [{
+        fecha: now,
+        accion: 'Armado',
+        usuario: currentUser?.nombre || 'admin',
+        detalle: 'Registro inicial del andamio.'
+      }],
+      fo46: old?.fo46 || [],
+      photos: old?.photos || [],
+      documentos: old?.documentos || []
+    };
+  }
+
+  window.saveAndamio = async function(){
+    const id = getVal('andamioId');
+    const precinto = normPrecinto(getVal('aPrecinto'));
+
+    if(!precinto){
+      toast('El precinto es obligatorio');
+      return;
+    }
+
+    if(!getVal('aObra') || !getVal('aSector')){
+      toast('Completá obra y sector');
+      return;
+    }
+
+    try{
+      toast('Validando precinto en Sheets...');
+      const res = await jsonp('listAndamios');
+
+      if(!res || res.ok === false){
+        toast('No se pudo validar con Google Sheets');
+        return;
+      }
+
+      const rows = res.andamios || [];
+      const duplicado = rows.find(a =>
+        normPrecinto(a.precinto) === precinto &&
+        String(a.id || '') !== String(id || '')
+      );
+
+      if(duplicado){
+        alert(
+          'El precinto ' + precinto + ' ya existe.\n\n' +
+          'Obra: ' + (duplicado.obra || '-') + '\n' +
+          'Sector: ' + (duplicado.sector || '-') + '\n' +
+          'Estado: ' + (duplicado.estado || '-') + '\n' +
+          'Responsable: ' + (duplicado.responsable || '-')
+        );
+        return;
+      }
+
+      const record = makeRecord(id);
+
+      const idx = (db.andamios || []).findIndex(x => String(x.id) === String(record.id));
+      if(idx >= 0) db.andamios[idx] = record;
+      else db.andamios.unshift(record);
+
+      persist();
+      closeModal('andamioModal');
+      renderAll();
+
+      toast('Guardando en Google Sheets...');
+      await postToSheet('upsertAndamio', { andamio: record });
+
+      toast('Guardado. Actualizando desde Sheets...');
+      setTimeout(()=>{
+        try{ window.syncLoadFromSheets && window.syncLoadFromSheets(); }catch(e){}
+      }, 3500);
+
+    }catch(err){
+      toast('Error al guardar');
+      console.error(err);
+    }
+  };
+})();
+</script>
