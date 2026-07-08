@@ -194,6 +194,293 @@ body.aisLenFocused .aisKeyboardSave{display:flex}
 /* ===== V1.0 PRESENTACIÓN GERENCIA ===== */
 .loginCard .brand{justify-content:center;text-align:left}.loginCard .mark{background-image:var(--al-logo)!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important;background-color:#fff!important;color:transparent!important;box-shadow:none!important}.sideBrand .mark,.platformBrand .mark,.workLoaderMark,.loaderMark,.foLoaderLogo .mark,.aisBrand .mark{background-image:var(--al-logo)!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important;background-color:#fff!important;color:transparent!important;box-shadow:none!important}.platformComing{font-size:12px}.demo{background:#f8fbff;border-color:#bfdbfe}.demo:before{content:'Versión de presentación para gerencia';display:block;font-weight:950;color:#1d4ed8;margin-bottom:6px}.platformWelcome p{max-width:760px}.platformStat:nth-child(3) b{font-size:22px}.platformStat:nth-child(4) b{font-size:24px}.reportLogo .alBig{background-image:var(--al-logo)!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important;background-color:#fff!important;color:transparent!important}.reportLogo .alBig:after{display:none!important}
 
+/* ===== V1.1 INDUSTRIAL DARK - CAPA VISUAL ===== */
+:root{
+  --bg:#080d14;
+  --card:#111827;
+  --ink:#e5e7eb;
+  --muted:#9ca3af;
+  --line:#263241;
+  --blue:#2563eb;
+  --blue2:#1e40af;
+  --green:#16a34a;
+  --amber:#d97706;
+  --red:#dc2626;
+  --dark:#05070b;
+  --shadow:0 18px 45px rgba(0,0,0,.34);
+}
+body{
+  background:
+    radial-gradient(circle at 18% -8%,rgba(37,99,235,.22),transparent 34%),
+    radial-gradient(circle at 86% 8%,rgba(245,158,11,.12),transparent 30%),
+    linear-gradient(180deg,#070b12 0,#0b111c 42%,#111827 100%)!important;
+  color:var(--ink);
+}
+.login,.platformPage,.aisPage{
+  background:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px),
+    radial-gradient(circle at top left,rgba(37,99,235,.26),transparent 38%),
+    linear-gradient(145deg,#070b12,#111827 58%,#090d14)!important;
+  background-size:32px 32px,32px 32px,auto,auto!important;
+}
+.loginCard,.platformHero,.platformCard,.topbar,.card,.miniKpi,.andamioCard,.plantCard,.aisTop,.aisCard,.aisStat,.aisHistCard,.modalCard,.detailHero,.detailBox,.docCard,.histCard,.reportShell,.functionalPanel,.execCard{
+  background:linear-gradient(180deg,rgba(17,24,39,.96),rgba(11,18,32,.98))!important;
+  border:1px solid rgba(148,163,184,.22)!important;
+  box-shadow:var(--shadow)!important;
+  color:var(--ink)!important;
+}
+.loginCard,.platformHero,.platformCard,.topbar,.card,.aisTop,.aisCard,.modalCard{border-radius:18px!important}
+.platformWrap{max-width:1120px}
+.platformTop,.platformBrand,.platformUser{color:var(--ink)}
+.brand h1,.platformBrand h1,.platformWelcome h2,.platformCard h3,.topbar h2,.cardHead h3,.aisTop h2,.aisCard h3,.andamioSector,.andamioPrec,.detailTitle h2,.detailBox b,.aisStat b,.aisEntry b,.modalHead h3{color:#f8fafc!important}
+.brand p,.platformBrand p,.platformWelcome p,.platformCard p,.platformList,.topbar p,.muted,.andamioDesc,.andamioMeasures,.detailTitle p,.detailBox small,.field label,.field small,.readOnlyHint,.aisTop p,.aisEntry small,.histText,.docCard p{color:#a8b3c5!important}
+.mark,.sideBrand .mark,.platformBrand .mark,.aisBrand .mark,.loginCard .mark{
+  background-color:#f8fafc!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.28)!important;
+}
+.demo,.readOnlyHint{
+  background:rgba(15,23,42,.86)!important;
+  border:1px dashed rgba(148,163,184,.35)!important;
+  color:#cbd5e1!important;
+}
+.demo:before{color:#93c5fd!important}
+.field input,.field select,.field textarea,.filters input,.filters select,.reportControls input,.reportControls select{
+  background:#0b1220!important;
+  border:1px solid rgba(148,163,184,.30)!important;
+  color:#f8fafc!important;
+  border-radius:12px!important;
+}
+.field input:focus,.field select:focus,.field textarea:focus,.filters input:focus,.filters select:focus{
+  border-color:#60a5fa!important;
+  box-shadow:0 0 0 3px rgba(37,99,235,.20)!important;
+}
+.btn{
+  border:1px solid rgba(148,163,184,.22)!important;
+  background:#1f2937!important;
+  color:#e5e7eb!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+.btn.primary,.aisActionBtn.primary{
+  background:linear-gradient(135deg,#1d4ed8,#2563eb)!important;
+  border-color:#3b82f6!important;
+  color:#fff!important;
+}
+.btn.warn{
+  background:linear-gradient(135deg,#92400e,#d97706)!important;
+  border-color:#f59e0b!important;
+  color:#fff!important;
+}
+.btn.danger{background:#7f1d1d!important;border-color:#dc2626!important;color:#fff!important}
+.btn.ok,.btn.success{background:#14532d!important;border-color:#22c55e!important;color:#fff!important}
+.btn.ghost{background:rgba(15,23,42,.65)!important;color:#e5e7eb!important}
+.sidebar,.aisSide{
+  background:linear-gradient(180deg,#05070b,#0b1220 48%,#111827)!important;
+  border-right:1px solid rgba(148,163,184,.18);
+}
+.userBox{
+  background:rgba(255,255,255,.055)!important;
+  border:1px solid rgba(148,163,184,.18)!important;
+}
+.nav button{color:#cbd5e1!important;border:1px solid transparent!important}
+.nav button.active,.nav button:hover{
+  background:linear-gradient(135deg,#1d4ed8,#2563eb)!important;
+  color:#fff!important;
+  border-color:#60a5fa!important;
+}
+.platformHero{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);
+  gap:16px;
+  align-items:stretch;
+  padding:20px!important;
+}
+.platformGrid{gap:16px}
+.platformCard{
+  position:relative;
+  overflow:hidden;
+  min-height:320px;
+}
+.platformCard:before{
+  content:"";
+  position:absolute;
+  left:0;right:0;top:0;
+  height:4px;
+  background:linear-gradient(90deg,#2563eb,#f59e0b);
+}
+.platformIcon{
+  background:#0b1220!important;
+  border:1px solid rgba(148,163,184,.24)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)!important;
+}
+.platformStat{
+  background:rgba(15,23,42,.86)!important;
+  border:1px solid rgba(148,163,184,.22)!important;
+  color:#e5e7eb!important;
+}
+.platformStat span,.platformUserBadge{color:#a8b3c5!important}
+.platformStat b{color:#f8fafc!important}
+.compactKpis{gap:10px}
+.miniKpi{
+  border-radius:14px!important;
+  min-height:78px;
+}
+.miniKpi:after{height:3px;background:#374151!important}
+.miniKpi.active{
+  background:linear-gradient(180deg,rgba(37,99,235,.28),rgba(15,23,42,.98))!important;
+  outline:2px solid rgba(96,165,250,.38)!important;
+}
+.miniKpi span{color:#a8b3c5!important}
+.miniKpi b{color:#f8fafc!important}
+.andamioGrid{gap:12px}
+.andamioCard{
+  grid-template-columns:112px minmax(0,1fr)!important;
+  border-radius:14px!important;
+  min-height:148px;
+}
+.andamioCard:before{border-radius:14px!important;background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(245,158,11,.08))!important}
+.andamioPhoto,.detailPhoto,.photoBox{
+  background:linear-gradient(135deg,#0f172a,#1f2937)!important;
+  color:#94a3b8!important;
+}
+.statusBadge.armado{background:#2563eb!important;color:#fff!important;border-color:#60a5fa!important}
+.statusBadge.modificado{background:#d97706!important;color:#111827!important;border-color:#fbbf24!important}
+.statusBadge.desarmado{background:#4b5563!important;color:#fff!important;border-color:#6b7280!important}
+.statusBadge.vencido{background:#dc2626!important;color:#fff!important;border-color:#991b1b!important}
+.statusBadge.proximo,.statusBadge.pendiente{background:#f59e0b!important;color:#111827!important;border-color:#fbbf24!important}
+.badge.ok{background:#16a34a!important;color:#fff!important;border-color:#22c55e!important}
+.badge.warn{background:#d97706!important;color:#111827!important;border-color:#fbbf24!important}
+.badge.bad{background:#991b1b!important;color:#fff!important;border-color:#dc2626!important}
+.badge.blue{background:#2563eb!important;color:#fff!important;border-color:#60a5fa!important}
+.tableWrap{border-color:rgba(148,163,184,.22)!important;background:#0b1220!important}
+table{background:#0b1220!important;color:#e5e7eb!important}
+th{
+  background:#111827!important;
+  color:#cbd5e1!important;
+  border-bottom-color:rgba(148,163,184,.24)!important;
+}
+td{border-bottom-color:rgba(148,163,184,.16)!important;color:#e5e7eb!important}
+.modal{background:rgba(0,0,0,.68)!important;backdrop-filter:blur(7px)}
+.modalHead,.modalFoot{
+  background:#0b1220!important;
+  border-color:rgba(148,163,184,.18)!important;
+}
+.tabs{
+  background:#0b1220!important;
+  border-color:rgba(148,163,184,.22)!important;
+  border-radius:14px!important;
+}
+.tabs button{background:transparent!important;color:#cbd5e1!important}
+.tabs button.active{background:#2563eb!important;color:#fff!important}
+.aisTask,.aisActionBtn,.aisEntry,.aisChip{
+  background:#0b1220!important;
+  border:1px solid rgba(148,163,184,.22)!important;
+  color:#e5e7eb!important;
+}
+.aisTask.active{background:#16a34a!important;color:#fff!important;border-color:#22c55e!important}
+.aisTask.des.active{background:#d97706!important;color:#111827!important;border-color:#fbbf24!important}
+.aisTask.rep.active{background:#2563eb!important;color:#fff!important;border-color:#60a5fa!important}
+.aisQuickLen{
+  background:#0b1220!important;
+  border:2px solid #60a5fa!important;
+  color:#f8fafc!important;
+}
+.mobileTop,.bottomNav{
+  background:rgba(5,7,11,.96)!important;
+  border-color:rgba(148,163,184,.18)!important;
+  color:#f8fafc!important;
+}
+.bottomNav button{color:#9ca3af!important}
+.bottomNav button.active{background:#1d4ed8!important;color:#fff!important}
+.toast,.aisToast{background:#030712!important;border:1px solid rgba(148,163,184,.22)!important}
+.foMark{
+  width:18px!important;
+  height:18px!important;
+  display:grid!important;
+  place-items:center!important;
+  transform:translate(-50%,-50%)!important;
+  font-size:15pt!important;
+  line-height:1!important;
+}
+.foSign{
+  line-height:1.05!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.fo46Aligned{
+  width:980px!important;
+  min-width:980px!important;
+  max-width:none!important;
+  padding:10px!important;
+  background:#fff!important;
+  color:#111!important;
+}
+.fo46Aligned .fo46TableOriginal th,
+.fo46Aligned .fo46TableOriginal td{
+  background:#fff!important;
+  color:#111!important;
+  border-color:#111!important;
+  font-size:11px!important;
+  line-height:1.12!important;
+  padding:4px 5px!important;
+}
+.fo46Aligned .fo46TableOriginal th{
+  background:#fff!important;
+  color:#111!important;
+}
+.fo46Aligned .fo46TableOriginal .item{width:34px!important}
+.fo46Aligned .fo46TableOriginal .risk{font-size:11px!important}
+.fo46Aligned .fo46TableOriginal .markCell{
+  width:48px!important;
+  min-width:48px!important;
+  max-width:48px!important;
+  text-align:center!important;
+  vertical-align:middle!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  padding:2px!important;
+}
+.fo46Aligned .fo46SignGrid{margin-top:8px!important}
+.fo46Aligned .fo46SignBox{min-height:78px!important}
+.fo46Aligned .fo46SignSpace{height:28px!important}
+.fo46Aligned .fo46Important{font-size:11px!important}
+.fo46Aligned table,
+.fo46Aligned tbody,
+.fo46Aligned thead,
+.fo46Aligned tr{
+  background:#fff!important;
+  color:#111!important;
+}
+@media(max-width:900px){
+  .login{padding:14px!important}
+  .loginCard{max-width:420px;padding:18px!important}
+  .platformPage{padding:14px!important}
+  .platformTop{display:flex!important;align-items:flex-start;gap:12px}
+  .platformBrand{gap:10px}
+  .platformBrand h1{font-size:20px!important}
+  .platformHero{grid-template-columns:1fr!important;padding:16px!important}
+  .platformStats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .platformGrid{grid-template-columns:1fr!important}
+  .platformCard{min-height:auto;padding:18px!important}
+  .main{padding:12px!important}
+  .topbar{padding:13px!important}
+  .compactKpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .andamioCard{grid-template-columns:96px minmax(0,1fr)!important;min-height:140px}
+  .andamioPhoto{width:96px!important;min-height:140px!important}
+  .andamioInfo{padding:10px!important}
+  .modalCard{border-radius:18px 18px 0 0!important}
+  .aisMain{padding:0 12px 82px!important}
+  .aisStats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media print{
+  body,.foDoc,.foDocOriginal,.foTemplateDoc,#reportBody,#reportBody *{
+    background:#fff!important;
+    color:#111!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -270,7 +557,7 @@ body.aisLenFocused .aisKeyboardSave{display:flex}
 <div id="toast" class="toast"></div>
 <script>
 const LS='alsi_andamios_v2_local';
-const FO_NUMS=[1,2,3,4,5,6,8,9,10,11,12,13,14,15];
+const FO_NUMS=[1,2,3,4,5,6,7,8,9,10,11,12,13,14];
 const FO_ITEMS=['Las condiciones de estabilidad y solidez del suelo, son adecuadas.-','Las plataformas, escaleras, descansos, y accesos, son adecuadas.-','Las grampas fijas o giratorias, las espigas expansibles, etc, se encuentran en buen estado y correctamente montados.-','El calculo de estructura, se encuentra debidamente confeccionado por personal competente. (solo para andamio que superen los 6,00mts, colgante o voladizo).-','El andamio se encuentra construido según el calculo de estructura aprobado (solo para andamio que superen los 6,00mts, colgante o voladizo).-','Los tablones se encuentran en buen estado, sin presentar cortes, óxido u otra anomalia visible.-','Las plataformas tienen un paso con un ancho mínimo no menor a 0,60m.-','Las plataformas cuentan con baranda perimetral a 0,50m y 1,00m.-','Las barandas se encuentran montadas correctamente en todo el perímetro. -','Las plataformas cuentan con un rodapies en todo su perimetro.-','Los andamios estan firmemente asegurados a una estructura fija, poseen anclajes a tierra (puntales o vientos).-','Los puntales descansan sobre bases de hierro de 15x15cm, o sobre bases de madera de 30x30cm (solo para puntales situados en pisos de poca firmeza como tierra, grava, etc.).-','Todas las ruedas poseen sistema de frenado, y llanta metálica recubierta con goma.-','Las escaleras poseen extensiones en su parte superior, 1,00m por encima del último peldaño.-'];
 const seed={usuarios:[{id:'admin',nombre:'Administrador General',rol:'admin',pass:'1234',obras:['*']},{id:'joel',nombre:'Joel',rol:'administrativo',pass:'1234',obras:['*']},{id:'alejo',nombre:'Alejo',rol:'administrativo',pass:'1234',obras:['*']},{id:'leo',nombre:'Leo',rol:'administrativo',pass:'1234',obras:['*']},{id:'lio',nombre:'Lio',rol:'administrativo',pass:'1234',obras:['*']},{id:'ainara',nombre:'Ainara',rol:'administrativo',pass:'1234',obras:['*']},{id:'supervisor1',nombre:'Supervisor 1',rol:'supervisor',pass:'1234',obras:['Cargill VGG','Punta Alvear','Dreyfus Lagos']},{id:'supervisor2',nombre:'Supervisor 2',rol:'supervisor',pass:'1234',obras:['Boortmalt']}],obras:[{nombre:'Cargill VGG',cliente:'Cargill',activa:true,sectores:['Puerto','Silos','Molino','Expedición'],responsables:['supervisor1'],docs:{permiso:true,memoria:true,alturaMemoria:6}},{nombre:'Boortmalt',cliente:'Boortmalt',activa:true,sectores:['Maltería','Silos','Producción'],responsables:['supervisor2'],docs:{permiso:false,memoria:true,alturaMemoria:6}},{nombre:'Punta Alvear',cliente:'Punta Alvear',activa:true,sectores:['Planta','Puerto','Servicios'],responsables:['supervisor1'],docs:{permiso:true,memoria:true,alturaMemoria:8}},{nombre:'Dreyfus Lagos',cliente:'Dreyfus',activa:true,sectores:['Silos','Carga','Mantenimiento'],responsables:['supervisor1'],docs:{permiso:false,memoria:false,alturaMemoria:8}}],andamios:[],config:{vigencia:30,alerta:5,alturaMemoriaDefault:6,fotoObligatoria:false}};
 function cryptoId(){return 'id_'+Math.random().toString(36).slice(2)+Date.now().toString(36)}function today(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return d.toISOString().slice(0,10)}
@@ -346,7 +633,7 @@ function reportHeader(obra,periodo){return `<div class="reportHeader"><div class
 function fmtDateSimple(d){if(!d)return '-';let raw=String(d).trim();let x;if(/^\d{4}-\d{2}-\d{2}$/.test(raw))x=new Date(raw+'T00:00:00');else x=new Date(raw);if(isNaN(x.getTime()))return '-';return x.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})}
 function fmtNum(n){return Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 const REPORT_LOAD_MS=15000;let reportTimer=null,reportInterval=null;
-function startReportGeneration(){const list=informeList();document.getElementById('reportTitle').textContent='Generando informe';document.getElementById('reportBody').innerHTML=`<div class="reportLoader"><div><div class="reportLoaderLogo">AL</div><h2 style="margin:0;color:#082a63">Generando informe ejecutivo</h2><p id="repMsg" style="color:#526070;font-weight:800">Analizando datos del período...</p><div class="reportProgress"><span id="repBar"></span></div><b id="repPct">0%</b><div class="actions" style="justify-content:center;margin-top:18px"><button class="btn ghost" onclick="finishReportNow()">Omitir carga</button></div></div></div>`;document.getElementById('reportFoot').innerHTML='';openModal('reportModal');const steps=['Analizando datos','Calculando m³','Preparando gráficos','Verificando documentación','Armando PDF ejecutivo','Listo'];const started=Date.now();clearInterval(reportInterval);clearTimeout(reportTimer);reportInterval=setInterval(()=>{const pct=Math.min(99,Math.floor(((Date.now()-started)/REPORT_LOAD_MS)*100));const idx=Math.min(steps.length-1,Math.floor(pct/100*steps.length));const b=document.getElementById('repBar'),p=document.getElementById('repPct'),m=document.getElementById('repMsg');if(b)b.style.width=pct+'%';if(p)p.textContent=pct+'%';if(m)m.textContent=steps[idx]+'...';},350);reportTimer=setTimeout(()=>finishReportGeneration(),REPORT_LOAD_MS)}
+function startReportGeneration(){const list=informeList();document.getElementById('reportTitle').textContent='Generando informe';document.getElementById('reportBody').innerHTML=`<div class="reportLoader"><div><div class="reportLoaderLogo">AL</div><h2 style="margin:0;color:#082a63">Generando informe ejecutivo</h2><p id="repMsg" style="color:#526070;font-weight:800">Analizando datos del período...</p><div class="reportProgress"><span id="repBar"></span></div><b id="repPct">0%</b></div></div>`;document.getElementById('reportFoot').innerHTML='';openModal('reportModal');const steps=['Analizando datos','Calculando m³','Preparando gráficos','Verificando documentación','Armando PDF ejecutivo','Listo'];const started=Date.now();clearInterval(reportInterval);clearTimeout(reportTimer);reportInterval=setInterval(()=>{const pct=Math.min(99,Math.floor(((Date.now()-started)/REPORT_LOAD_MS)*100));const idx=Math.min(steps.length-1,Math.floor(pct/100*steps.length));const b=document.getElementById('repBar'),p=document.getElementById('repPct'),m=document.getElementById('repMsg');if(b)b.style.width=pct+'%';if(p)p.textContent=pct+'%';if(m)m.textContent=steps[idx]+'...';},350);reportTimer=setTimeout(()=>finishReportGeneration(),REPORT_LOAD_MS)}
 function finishReportNow(){finishReportGeneration()}
 function finishReportGeneration(){clearInterval(reportInterval);clearTimeout(reportTimer);const list=informeList();document.getElementById('reportTitle').textContent='Informe ejecutivo';document.getElementById('reportBody').innerHTML=renderReportPreview(list,true);document.getElementById('reportFoot').innerHTML=`<button class="btn ghost" onclick="closeModal('reportModal')">Cerrar</button><button class="btn ghost" onclick="shareInformeWhatsApp()">📱 WhatsApp</button><button class="btn primary" onclick="printFO46()">🖨 Imprimir / Guardar PDF</button>`}
 function shareInformeWhatsApp(){
@@ -464,7 +751,7 @@ function startFO46Inspection(andId, foId='', correccion=false){
   const a=db.andamios.find(x=>x.id===andId); if(!a) return;
   document.getElementById('fo46Title').textContent='Preparando inspección · '+a.precinto;
   const steps=['Buscando datos del andamio','Recuperando historial','Verificando inspecciones anteriores','Validando documentación asociada','Preparando formulario FO46','Cargando entorno de inspección'];
-  document.getElementById('fo46Body').innerHTML=`<div class="foLoaderBox"><div class="foLoaderInner"><div class="foLoaderLogo"><div class="mark">AL</div></div><h2 class="foLoaderTitle">Preparando inspección FO46</h2><p class="foLoaderSub">${a.precinto} · ${a.obra} · ${a.sector}</p><div class="foProgressShell"><div class="foProgressBar" id="foProgressBar"></div></div><div class="foProgressPct" id="foProgressPct">0%</div><div class="foLoaderMsg" id="foLoaderMsg">Iniciando carga...</div><div class="foLoaderSteps" id="foLoaderSteps">${steps.map((x,i)=>`<div class="foLoaderStep" id="foStep${i}">○ ${x}</div>`).join('')}</div><div class="foLoaderActions"><button class="btn ghost" onclick="cancelFO46Loader()">Cancelar</button><button class="btn primary" onclick="finishFO46LoaderNow()">Omitir carga</button></div></div></div>`;
+  document.getElementById('fo46Body').innerHTML=`<div class="foLoaderBox"><div class="foLoaderInner"><div class="foLoaderLogo"><div class="mark">AL</div></div><h2 class="foLoaderTitle">Preparando inspección FO46</h2><p class="foLoaderSub">${a.precinto} · ${a.obra} · ${a.sector}</p><div class="foProgressShell"><div class="foProgressBar" id="foProgressBar"></div></div><div class="foProgressPct" id="foProgressPct">0%</div><div class="foLoaderMsg" id="foLoaderMsg">Iniciando carga...</div><div class="foLoaderSteps" id="foLoaderSteps">${steps.map((x,i)=>`<div class="foLoaderStep" id="foStep${i}">○ ${x}</div>`).join('')}</div><div class="foLoaderActions"><button class="btn ghost" onclick="cancelFO46Loader()">Cancelar</button></div></div></div>`;
   document.getElementById('fo46Foot').innerHTML='';
   openModal('fo46Modal');
   const started=Date.now();
@@ -593,15 +880,38 @@ function aisSheet(html){let sh=document.getElementById('aisSheet'); if(!sh){docu
 function aisCloseSheet(){const sh=document.getElementById('aisSheet'); if(sh)sh.classList.remove('show')}
 function aisMiniToast(t){let el=document.getElementById('aisToast'); if(!el){document.body.insertAdjacentHTML('beforeend','<div id="aisToast" class="aisToast"></div>');el=document.getElementById('aisToast')} el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1300)}
 enterPlatform = function(platform){if(!currentUser){logout();return} if(platform==='andamios'){runWorkLoader('Control de Andamios',['Preparando Control de Andamios...','Cargando obras y sectores...','Verificando andamios activos...','Preparando FO46 e informes...','Listo.'],()=>{document.getElementById('platformPage').classList.add('hidden');document.getElementById('aislacionPage').classList.add('hidden');document.getElementById('appPage').classList.remove('hidden');showView('andamios');renderAll()});return} if(platform==='aislacion'){runWorkLoader('Control de Aislación',['Preparando Libreta Digital...','Cargando relevamientos...','Verificando historial...','Inicializando medición...','Listo.'],()=>{document.getElementById('platformPage').classList.add('hidden');document.getElementById('appPage').classList.add('hidden');document.getElementById('aislacionPage').classList.remove('hidden');renderAislacionPage();});} };
-function foTplMark(itemIndex, r){const y=[34.6,38.2,41.8,45.2,48.8,52.5,56.2,59.8,63.4,67.0,70.6,74.2,77.8,81.1][itemIndex]||34; const x=r==='SI'?77.2:r==='NO'?85.3:94.1; return `<span class="foMark" style="left:${x}%;top:${y}%">X</span>`}
+function foTplMark(itemIndex, r){const y=[35.35,38.85,42.35,45.85,49.35,52.85,56.35,59.85,63.35,66.85,70.35,73.85,77.35,80.85][itemIndex]||35.35; const x=r==='SI'?69.5:r==='NO'?78.8:88.0; return `<span class="foMark" style="left:${x}%;top:${y}%">X</span>`}
 viewFO46 = function(andId,foId,print=false){
  const a=db.andamios.find(x=>x.id===andId), f=a?.fo46?.find(x=>x.id===foId); if(!a||!f){toast('No se encontró el FO46');return}
  const cliente=(db.obras.find(o=>o.nombre===a.obra)||{}).cliente||a.obra;
  const obs=(f.obsGeneral||f.items?.filter(x=>x.obs).map((x,i)=>`${FO_NUMS[i]||i+1}: ${x.obs}`).join(' · ')||'').slice(0,260);
  const marks=(f.items||[]).map((it,i)=>foTplMark(i,it.r)).join('');
  document.getElementById('fo46Title').textContent='FO46 oficial · '+a.precinto;
- document.getElementById('fo46Body').innerHTML=`<div class="foTemplateScroll"><div class="foTemplateDoc"><img class="foBg" src="${FO46_TEMPLATE_DATA}"><span class="foField" style="left:23%;top:13.1%;width:70%">${(f.ubicacion||a.sector||a.obra)} · Precinto: ${a.precinto}</span><span class="foField" style="left:6%;top:17.1%;width:28%">${f.ot||''}</span><span class="foField" style="left:47%;top:17.1%;width:46%">${cliente}</span>${marks}<div class="foObsText" style="left:3%;top:84.2%;width:92%;height:4.8%">${obs}</div><span class="foSign" style="left:17%;top:94.1%;width:18%">${f.inspector||currentUser?.nombre||''}</span><span class="foSign" style="left:37%;top:94.1%;width:12%">${new Date(f.fecha).toLocaleDateString('es-AR')}</span><span class="foSign" style="left:70%;top:94.1%;width:19%">${f.responsable||a.responsable||''}</span><span class="foSign" style="left:90%;top:94.1%;width:9%">${new Date(f.fecha).toLocaleDateString('es-AR')}</span></div></div>`;
+ document.getElementById('fo46Body').innerHTML=`<div class="foTemplateScroll"><div class="foTemplateDoc"><img class="foBg" src="${FO46_TEMPLATE_DATA}"><span class="foField" style="left:25%;top:25.8%;width:68%">${(f.ubicacion||a.sector||a.obra)} · Precinto: ${a.precinto}</span><span class="foField" style="left:6%;top:29.2%;width:28%">${f.ot||''}</span><span class="foField" style="left:56%;top:29.2%;width:37%">${cliente}</span>${marks}<div class="foObsText" style="left:3%;top:83.8%;width:92%;height:4.8%">${obs}</div><span class="foSign" style="left:16%;top:91.0%;width:18%">${f.inspector||currentUser?.nombre||''}</span><span class="foSign" style="left:38%;top:91.0%;width:11%">${new Date(f.fecha).toLocaleDateString('es-AR')}</span><span class="foSign" style="left:69%;top:91.0%;width:19%">${f.responsable||a.responsable||''}</span><span class="foSign" style="left:90%;top:91.0%;width:9%">${new Date(f.fecha).toLocaleDateString('es-AR')}</span></div></div>`;
  document.getElementById('fo46Foot').innerHTML=`<button class="btn ghost" onclick="closeModal('fo46Modal')">Cerrar</button><button class="btn primary" onclick="printFO46()">🖨 Imprimir / Guardar PDF</button>`;
+openModal('fo46Modal'); if(print)setTimeout(()=>printFO46(),450);
+};
+viewFO46 = function(andId,foId,print=false){
+ const a=db.andamios.find(x=>x.id===andId), f=a?.fo46?.find(x=>x.id===foId); if(!a||!f){toast('No se encontro el FO46');return}
+ const fecha=new Date(f.fecha).toLocaleDateString('es-AR');
+ const cliente=(db.obras.find(o=>o.nombre===a.obra)||{}).cliente||a.obra;
+ const ubicacion=`${f.ubicacion||a.sector||a.obra} - Precinto: ${a.precinto}`;
+ const marca=(r,v)=>r===v?'X':'';
+ const obs=(f.obsGeneral||f.items?.filter(x=>x.obs).map((x,i)=>`${FO_NUMS[i]||i+1}: ${x.obs}`).join(' - ')||'');
+ const rows=(f.items||[]).map((it,i)=>`<tr><td class="item">${FO_NUMS[i]||i+1}</td><td class="risk">${it.item||''}</td><td class="markCell">${marca(it.r,'SI')}</td><td class="markCell">${marca(it.r,'NO')}</td><td class="markCell">${marca(it.r,'NA')}</td></tr>`).join('');
+ document.getElementById('fo46Title').textContent='FO46 oficial - '+a.precinto;
+ document.getElementById('fo46Body').innerHTML=`<div class="fo46DocScroll"><div class="foDocOriginal fo46Aligned"><div class="fo46Page">
+  <div class="fo46Top"><div class="fo46LogoCell"><img src="${AL_LOGO_DATA}" alt="AL Servicios Integrales"></div><div class="fo46TitleCell"><div>FORMULARIO DEL SGI</div><h2>LISTA DE VERIFICACION<br>DE ANDAMIOS CONFORME</h2></div><div class="fo46CodeCell"><div>FO 46</div><div>VIGENCIA</div><div>04/12/2024</div></div></div>
+  <div class="fo46FieldLine">UBICACION DEL ANDAMIO:<span>${ubicacion}</span></div>
+  <div class="fo46Row2"><div class="fo46MiniLine">OT:<span>${f.ot||''}</span></div><div class="fo46MiniLine">CLIENTE:<span>${cliente}</span></div></div>
+  <div class="fo46Instructions"><h3>INSTRUCCIONES</h3><p>1- Esta lista de verificacion debe ser confeccionada al finalizar la construccion del andamio, o luego de una modificacion en un andamio existente.-</p><p>2- Una vez completada la verificacion sera archivada/guardada en la plataforma Drive, vinculando la misma a la Orden de Trabajo correspondiente como evidencia objetiva de control de calidad.</p><p>3- Para cada item en que corresponda una respuesta NO, se debera hacer la salvedad correspondiente en observaciones. De no haber medida de control del riesgo el NO SE HABILITARA EL ANDAMIO.</p><p>4- En caso de utilizar dicha verificacion como habilitacion de andamio ante el cliente colocar una copia in situ con tarjeta verde.</p></div>
+  <table class="fo46TableOriginal"><thead><tr><th class="item">ITEM</th><th>RIESGO</th><th>SI</th><th>NO</th><th>N/A</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="fo46Obs">OBSERVACIONES:<span>${obs}</span></div>
+  <div class="fo46SignGrid"><div class="fo46SignBox"><h4>TECNICO EN HIGIENE &amp; SEGURIDAD</h4><div class="fo46SignCols"><div>FIRMA</div><div>ACLARACION</div><div>FECHA</div></div><div class="fo46SignSpace"></div></div><div></div><div class="fo46SignBox"><h4>RESPONSABLE POR CONSTRUCCION DEL ANDAMIO</h4><div class="fo46SignCols"><div>FIRMA</div><div>ACLARACION</div><div>FECHA</div></div><div class="fo46SignSpace"></div></div></div>
+  <div class="fo46Important">IMPORTANTE: CUALQUIER MODIFICACION EN LA ESTRUCTURA INVALIDARA SU APROBACION, ESTA CONDICION DEBERA SER COMUNICADA A "A.L. SERVICIOS INTEGRALES S.A."</div>
+  <div class="fo46Meta">Generado desde Control de Andamios - Version FO46 V${f.version} - Usuario: ${currentUser?currentUser.nombre:'-'}</div>
+ </div></div></div>`;
+ document.getElementById('fo46Foot').innerHTML=`<button class="btn ghost" onclick="closeModal('fo46Modal')">Cerrar</button><button class="btn primary" onclick="printFO46()">Imprimir / Guardar PDF</button>`;
  openModal('fo46Modal'); if(print)setTimeout(()=>printFO46(),450);
 };
 (function(){document.title='AL Registro de Tareas'; const fav=document.createElement('link');fav.rel='icon';fav.href=AL_LOGO_DATA;document.head.appendChild(fav);})();
