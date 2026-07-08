@@ -2918,5 +2918,103 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<style>
+/* ===== INFORMES BLANCOS + SIN DIAGNOSTICO v3.3.5 ===== */
+#diagFab,#diagPanel,.versionChip{display:none!important}
+.aisReportPage{background:#fff!important;color:#111827!important;border:1px solid #d9e2f2!important;border-radius:18px!important;padding:18px!important;box-shadow:0 12px 28px rgba(15,23,42,.08)!important}
+.aisReportPage .aisHeader{background:#fff!important;color:#111827!important;border:1px solid #d9e2f2!important;border-radius:14px!important;padding:14px 16px!important;margin-bottom:12px!important;box-shadow:none!important}
+.aisReportPage .aisHeader h2{color:#0b2f6b!important}
+.aisReportPage .aisHeader p{color:#475569!important}
+.aisReportPage .reportActions{background:#fff!important;border:0!important;margin:8px 0 12px!important}
+.aisReportPage .reportShell,.aisReportShell{background:#fff!important;color:#111827!important;border:1px solid #cbd5e1!important;border-radius:14px!important;box-shadow:none!important}
+.aisReportPage .reportHeader,.aisReportShell .reportHeader{background:#fff!important;border-color:#cbd5e1!important;border-radius:8px!important}
+.aisReportPage .reportLogo,.aisReportShell .reportLogo{background:#fff!important}
+.aisReportPage .logoMark,.aisReportShell .logoMark{width:78px;height:54px;border:2px solid #0b5fa5;border-radius:6px;color:#0b5fa5;background:#fff!important;display:grid;place-items:center;font-weight:1000;font-size:22px}
+.aisReportPage .reportName h2,.aisReportShell .reportName h2{color:#0b2f6b!important;font-size:24px!important;letter-spacing:0!important}
+.aisReportPage .reportName b,.aisReportShell .reportName b,.aisReportPage .reportMeta,.aisReportShell .reportMeta{color:#111827!important}
+.aisReportPage h4,.aisReportShell h4{color:#0b2f6b!important;border-bottom:1px solid #cbd5e1!important;padding-bottom:6px!important;margin:16px 0 10px!important}
+.aisReportPage .execGrid,.aisReportShell .execGrid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))!important}
+.aisReportPage .execCard,.aisReportShell .execCard{background:#fff!important;color:#111827!important;border:1px solid #cbd5e1!important;border-radius:10px!important;min-height:96px!important;box-shadow:none!important;padding:10px!important}
+.aisReportPage .execIcon,.aisReportShell .execIcon{width:42px;height:28px;border-radius:999px;background:#eef6ff;color:#0b2f6b;display:grid;place-items:center;font-size:12px!important;font-weight:1000;margin-bottom:4px}
+.aisReportKpi b{color:#0b2f6b!important;font-size:22px!important}
+.aisReportKpi small,.aisReportKpi em{color:#475569!important;font-style:normal!important}
+.aisReportPage .reportPanel,.aisReportShell .reportPanel{background:#fff!important;border:1px solid #cbd5e1!important;border-radius:12px!important;padding:12px!important}
+.aisReportPage .statusMiniGrid,.aisReportShell .statusMiniGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.aisReportPage .statusMiniGrid div,.aisReportShell .statusMiniGrid div{background:#f8fafc!important;border:1px solid #e2e8f0!important;border-radius:9px!important;padding:8px!important}
+.aisReportPage .statusMiniGrid b,.aisReportShell .statusMiniGrid b{color:#0b2f6b!important;font-size:20px!important}
+.aisReportPage .statusMiniGrid small,.aisReportShell .statusMiniGrid small{display:block;color:#475569!important;font-weight:900!important;text-transform:uppercase;font-size:10px}
+.aisReportPage .tableWrap,.aisReportShell .tableWrap{border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important}
+.aisReportPage .reportTable,.aisReportShell .reportTable{background:#fff!important;color:#111827!important;min-width:720px!important}
+.aisReportPage .reportTable th,.aisReportShell .reportTable th{background:#eaf2ff!important;color:#0b2f6b!important;border:1px solid #cbd5e1!important}
+.aisReportPage .reportTable td,.aisReportShell .reportTable td{background:#fff!important;color:#111827!important;border:1px solid #e2e8f0!important}
+.aisReportPhotos .empty{background:#fff!important;color:#475569!important}
+@media print{
+  #diagFab,#diagPanel,.versionChip{display:none!important}
+  body.al-report-printing{background:#fff!important}
+  body.al-report-printing .reportShell,body.al-report-printing .aisReportShell{width:100%!important;max-width:none!important;background:#fff!important;color:#111!important}
+}
+</style>
+
+<script>
+/* ===== IMPRESION DIRECTA DE INFORMES v3.3.5 ===== */
+(function(){
+  'use strict';
+  function collectReportHtml(){
+    const body=document.getElementById('reportBody');
+    const modalReport=body&&body.innerHTML.trim()?body.innerHTML:'';
+    if(modalReport)return modalReport;
+    const pageReport=document.querySelector('.aisReportPage .reportShell')||document.querySelector('.reportShell');
+    return pageReport?pageReport.outerHTML:'';
+  }
+  function reportPrintCss(){
+    return `
+      @page{size:A4 portrait;margin:9mm}
+      *{box-sizing:border-box}
+      body{margin:0;background:#fff;color:#111827;font-family:Arial,Helvetica,sans-serif}
+      .reportShell,.aisReportShell{background:#fff;color:#111827;border:0;border-radius:0;padding:0;box-shadow:none;overflow:visible}
+      .reportHeader{display:grid;grid-template-columns:32mm 1fr 58mm;border:1px solid #94a3b8;margin-bottom:5mm;background:#fff}
+      .reportLogo{display:grid;place-items:center;border-right:1px solid #94a3b8;padding:4mm}
+      .logoMark,.alBig{width:24mm;height:16mm;border:2px solid #0b5fa5;border-radius:2mm;color:#0b5fa5;background:#fff;display:grid;place-items:center;font-weight:900;font-size:18pt}
+      .reportName{padding:5mm}.reportName h2{margin:0;color:#0b2f6b;font-size:18pt}.reportName b{display:block;margin-top:2mm;color:#111827;font-size:9pt}
+      .reportMeta{border-left:1px solid #94a3b8;padding:4mm;font-size:8pt;line-height:1.45}
+      h4{margin:5mm 0 2mm;color:#0b2f6b;border-bottom:1px solid #94a3b8;padding-bottom:1.5mm;font-size:10pt}
+      .execGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:2mm}
+      .execCard{border:1px solid #cbd5e1;border-radius:2mm;min-height:22mm;text-align:center;padding:2mm;background:#fff}
+      .execIcon{font-size:8pt;font-weight:900;color:#0b2f6b}.execCard b,.execCard strong{display:block;color:#0b2f6b;font-size:14pt}.execCard small,.execCard em{display:block;color:#475569;font-size:6.5pt;font-style:normal;text-transform:uppercase}
+      .reportTwoCols{display:grid;grid-template-columns:1fr 1.5fr;gap:4mm}.reportPanel{border:1px solid #cbd5e1;border-radius:2mm;padding:3mm;background:#fff}
+      .statusMiniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:2mm}.statusMiniGrid div{border:1px solid #e2e8f0;padding:2mm}.statusMiniGrid b{display:block;color:#0b2f6b;font-size:13pt}.statusMiniGrid small{font-size:6.5pt;color:#475569;text-transform:uppercase}
+      .tableWrap{overflow:visible;border:0}.reportTable{width:100%;min-width:0;border-collapse:collapse;font-size:7.5pt;background:#fff}.reportTable th{background:#eaf2ff;color:#0b2f6b;border:1px solid #94a3b8;padding:1.6mm;text-align:left}.reportTable td{border:1px solid #cbd5e1;padding:1.5mm;color:#111827}
+      .aisReportPhotos{display:flex;gap:2mm;flex-wrap:wrap}.aisReportPhotos img{width:18mm;height:18mm;object-fit:cover;border:1px solid #cbd5e1;border-radius:1mm}
+      a{color:#0b2f6b;text-decoration:none}
+    `;
+  }
+  window.printReport=function(){
+    const html=collectReportHtml();
+    if(!html){
+      if(typeof toast==='function')toast('No hay informe para imprimir');
+      return;
+    }
+    const win=window.open('','_blank','noopener,noreferrer,width=900,height=1100');
+    if(win&&win.document){
+      win.document.open();
+      win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Informe AL</title><style>${reportPrintCss()}</style></head><body>${html}<script>window.onload=function(){setTimeout(function(){window.focus();window.print();},250)}<\/script></body></html>`);
+      win.document.close();
+      return;
+    }
+    document.body.classList.add('al-report-printing');
+    setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('al-report-printing'),1000)},250);
+  };
+  const previousStart=window.startAisReportGeneration;
+  if(previousStart){
+    window.startAisReportGeneration=function(){
+      previousStart.apply(this,arguments);
+      const foot=document.getElementById('reportFoot');
+      if(foot)foot.innerHTML=`<button class="btn ghost" onclick="closeModal('reportModal')">Cerrar</button><button class="btn ghost" onclick="shareAisInformeWhatsApp()">WhatsApp</button><button class="btn primary" onclick="printReport()">Imprimir / Guardar PDF</button>`;
+    };
+  }
+  try{printReport=window.printReport;startAisReportGeneration=window.startAisReportGeneration;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
