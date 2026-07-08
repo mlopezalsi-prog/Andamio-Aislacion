@@ -3152,5 +3152,329 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<script>
+/* ===== DRIVE FOTOS EN SEGUNDO PLANO v3.3.7 ===== */
+(function(){
+  'use strict';
+  const WEBAPP='https://script.google.com/macros/s/AKfycbyD_hNV6e98rQHnR90SA7tYijOcs6F6Hez76E4BOM7rYcb-THJIYkuoQDtSiucgV_wIbA/exec';
+  const BG_DELAY={default:3800,upsertAndamio:5200,uploadAndamioFile:11000,upsertAislacion:6200,uploadAislacionFile:12000};
+
+  function clean(v){return String(v??'').trim()}
+  function norm(v){return clean(v).replace(/\s+/g,' ').toUpperCase()}
+  function valLocal(id){const el=document.getElementById(id);return el?el.value:''}
+  function parseArr(v){if(Array.isArray(v))return v;try{const x=JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  function toastLocal(msg){if(typeof toast==='function')toast(msg);else if(typeof aisMiniToast==='function')aisMiniToast(msg)}
+  function idLocal(){return typeof cryptoId==='function'?cryptoId():'id_'+Date.now()+'_'+Math.random().toString(36).slice(2)}
+  function persistLocal(){try{if(typeof persist==='function')persist()}catch(e){} try{if(typeof aisSave==='function')aisSave()}catch(e){}}
+  function renderAndamios(){try{if(typeof renderAll==='function')renderAll()}catch(e){}}
+  function renderAis(){try{if(typeof renderAislacionPage==='function')renderAislacionPage()}catch(e){}}
+  function isDataUrl(v){return String(v||'').startsWith('data:')&&String(v).includes(',')}
+  function postBg(action,payload={},wait){
+    return new Promise(resolve=>{
+      const iframeName='al_bg_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const iframe=document.createElement('iframe');
+      iframe.name=iframeName;iframe.style.display='none';
+      const form=document.createElement('form');
+      form.method='POST';form.action=WEBAPP;form.target=iframeName;form.style.display='none';
+      const input=document.createElement('textarea');
+      input.name='payload';input.value=JSON.stringify({action,...payload});
+      form.appendChild(input);document.body.appendChild(iframe);document.body.appendChild(form);
+      form.submit();
+      setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){}resolve({ok:true})},wait||BG_DELAY[action]||BG_DELAY.default);
+    });
+  }
+  function jsonpBg(action,params={},timeoutMs=20000){
+    return new Promise((resolve,reject)=>{
+      const cb='al_bg_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const s=document.createElement('script');
+      const timer=setTimeout(()=>{cleanup();reject(new Error('Tiempo agotado leyendo Sheets'))},timeoutMs);
+      function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(e){}try{s.remove()}catch(e){}}
+      window[cb]=res=>{cleanup();resolve(res)};
+      s.onerror=()=>{cleanup();reject(new Error('No se pudo conectar con Sheets'))};
+      const q=new URLSearchParams({action,callback:cb,_:Date.now(),...params});
+      s.src=WEBAPP+'?'+q.toString();
+      document.body.appendChild(s);
+    });
+  }
+  function fileToData(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>compressDataUrl(reader.result,file.type).then(resolve).catch(()=>resolve(reader.result));
+      reader.onerror=()=>reject(reader.error||new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+  function compressDataUrl(dataUrl,mime){
+    if(!String(mime||dataUrl).includes('image'))return Promise.resolve(dataUrl);
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=1280;
+        const scale=Math.min(1,max/Math.max(img.width,img.height));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(img.width*scale));
+        canvas.height=Math.max(1,Math.round(img.height*scale));
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL('image/jpeg',0.78));
+      };
+      img.onerror=reject;
+      img.src=dataUrl;
+    });
+  }
+  function prepareAndamioForSheet(a){
+    const rec={...a};
+    ['historial','fo46','photos','documentos'].forEach(k=>rec[k]=JSON.stringify(parseArr(rec[k]).map(x=>({...x,data:undefined}))));
+    if(isDataUrl(rec.foto))rec.foto='';
+    rec.codigo='';rec.supervisorAL='';rec.volumenConvertido='';rec.volumenEstructura='';
+    return rec;
+  }
+  function buildAndamioFromFormFast(id){
+    const now=new Date().toISOString();
+    const old=id?(db.andamios||[]).find(x=>String(x.id)===String(id)):null;
+    const record={
+      ...(old||{}),
+      id:id||idLocal(),
+      obra:clean(valLocal('aObra')),
+      sector:clean(valLocal('aSector')),
+      precinto:norm(valLocal('aPrecinto'))||('AND-'+String((db.andamios||[]).length+1).padStart(4,'0')),
+      codigo:'',
+      tipo:clean(valLocal('aTipo'))||'Montaje',
+      descripcion:clean(valLocal('aDescripcion')),
+      fechaMontaje:clean(valLocal('aFechaMontaje'))||(typeof today==='function'?today():new Date().toISOString().slice(0,10)),
+      tipoMontaje:clean(valLocal('aTipoMontaje'))||'N',
+      nivelMontaje:clean(valLocal('aNivelMontaje')),
+      largo:clean(valLocal('aLargo')),
+      ancho:clean(valLocal('aAncho')),
+      alto:clean(valLocal('aAlto')),
+      volumenMedido:clean(valLocal('aVolumenMedido')),
+      dist0:clean(valLocal('aDist0')),
+      dist6:clean(valLocal('aDist6')),
+      dist20:clean(valLocal('aDist20')),
+      volumenConvertido:'',
+      extras:clean(valLocal('aTipoMontaje'))==='E'?'Si':'No',
+      feriados:clean(valLocal('aTipoMontaje'))==='F'?'Si':'No',
+      volumenEstructura:'',
+      fecha:clean(valLocal('aFechaMontaje'))||(typeof today==='function'?today():new Date().toISOString().slice(0,10)),
+      estado:clean(valLocal('aEstado'))||'Activo',
+      supervisorPlanta:clean(valLocal('aSupervisorPlanta')),
+      supervisorAL:'',
+      responsable:currentUser?.nombre||'',
+      observaciones:clean(valLocal('aObservaciones')),
+      foto:old?.foto||'',
+      usuario:currentUser?.id||'admin',
+      createdAt:old?.createdAt||now,
+      createdBy:old?.createdBy||currentUser?.id||'admin',
+      updatedAt:now,
+      updatedBy:currentUser?.id||'admin',
+      historial:parseArr(old?.historial),
+      fo46:parseArr(old?.fo46),
+      photos:parseArr(old?.photos),
+      documentos:parseArr(old?.documentos),
+      syncStatus:'Pendiente Drive'
+    };
+    if(!record.historial.length)record.historial=[{fecha:now,accion:'Armado',usuario:currentUser?.nombre||'admin',detalle:'Registro inicial del andamio.'}];
+    else if(id)record.historial.push({fecha:now,accion:'Actualizacion',usuario:currentUser?.nombre||'admin',detalle:'Datos actualizados desde la app.'});
+    if(typeof updateAndamioCalc==='function')updateAndamioCalc();
+    const currentPhoto=(typeof photoData!=='undefined'?photoData:window.photoData);
+    if(isDataUrl(currentPhoto)){
+      const ph={id:idLocal(),tipo:'Foto principal',fecha:now,usuario:currentUser?.nombre||'',data:currentPhoto,driveId:'pendiente_drive'};
+      record.foto=currentPhoto;
+      record.photos=[ph,...record.photos.filter(p=>p.tipo!=='Foto principal')];
+    }
+    return record;
+  }
+  function upsertLocalAndamio(record){
+    db.andamios=db.andamios||[];
+    const idx=db.andamios.findIndex(x=>String(x.id)===String(record.id));
+    if(idx>=0)db.andamios[idx]=record;
+    else db.andamios.unshift(record);
+    persistLocal();
+  }
+  async function syncAndamioBg(record,photoDataForUpload){
+    try{
+      await postBg('upsertAndamio',{andamio:prepareAndamioForSheet(record)},BG_DELAY.upsertAndamio);
+      if(isDataUrl(photoDataForUpload)){
+        await postBg('uploadAndamioFile',{
+          andamioId:record.id,
+          andamio:prepareAndamioForSheet(record),
+          category:'Fotos',
+          relation:'fotoPrincipal',
+          tipo:'Foto principal',
+          fileName:(record.precinto||'foto')+'.jpg',
+          fileData:photoDataForUpload,
+          mimeType:'image/jpeg',
+          usuario:currentUser?.nombre||''
+        },BG_DELAY.uploadAndamioFile);
+      }
+      try{if(typeof syncLoadFromSheets==='function')await syncLoadFromSheets();else{
+        const r=await jsonpBg('listAndamios');
+        if(r&&r.ok!==false){db.andamios=(r.andamios||[]);persistLocal();renderAndamios();}
+      }}catch(e){}
+      toastLocal(photoDataForUpload?'Andamio y foto sincronizados':'Andamio sincronizado');
+    }catch(e){
+      console.error(e);
+      const local=(db.andamios||[]).find(x=>String(x.id)===String(record.id));
+      if(local){local.syncStatus='Pendiente de reintento';local.syncError=e.message||'No se pudo subir a Drive';persistLocal();renderAndamios();}
+      toastLocal('Quedo pendiente de sincronizar Drive');
+    }
+  }
+  window.saveAndamio=function(){
+    const id=clean(valLocal('andamioId'));
+    if(!clean(valLocal('aObra'))||!clean(valLocal('aSector'))){toastLocal('Completa obra y sector');return}
+    const record=buildAndamioFromFormFast(id);
+    const photo=record.photos.find(p=>p.tipo==='Foto principal'&&isDataUrl(p.data))?.data||'';
+    upsertLocalAndamio(record);
+    try{closeModal('andamioModal')}catch(e){}
+    renderAndamios();
+    try{if(typeof showView==='function')showView('andamios')}catch(e){}
+    toastLocal('Guardado. Drive sincroniza en segundo plano.');
+    setTimeout(()=>syncAndamioBg(record,photo),250);
+  };
+  window.addPhoto=function(id,source='gallery'){
+    const input=document.createElement('input');
+    input.type='file';input.accept='image/*';
+    if(source==='camera')input.setAttribute('capture','environment');
+    input.onchange=async e=>{
+      const file=e.target.files&&e.target.files[0];if(!file)return;
+      const data=await fileToData(file);
+      const a=(db.andamios||[]).find(x=>String(x.id)===String(id));if(!a)return;
+      const now=new Date().toISOString();
+      const item={id:idLocal(),tipo:'Foto adicional',nombre:file.name||'foto.jpg',fecha:now,usuario:currentUser?.nombre||'',data,driveId:'pendiente_drive'};
+      a.photos=parseArr(a.photos);a.photos.push(item);if(!a.foto)a.foto=data;
+      persistLocal();renderAndamios();try{openDetail(id,'fotos')}catch(e){}
+      toastLocal('Foto agregada. Subiendo a Drive...');
+      syncAndamioExtraFileBg(a,item,'Fotos Adicionales');
+    };
+    input.click();
+  };
+  async function syncAndamioExtraFileBg(andamio,item,category){
+    try{
+      await postBg('upsertAndamio',{andamio:prepareAndamioForSheet(andamio)},BG_DELAY.upsertAndamio);
+      await postBg('uploadAndamioFile',{
+        andamioId:andamio.id,
+        andamio:prepareAndamioForSheet(andamio),
+        category,
+        relation:item.id,
+        tipo:item.tipo||category,
+        nombre:item.nombre||category,
+        fileName:item.nombre||'archivo.jpg',
+        fileData:item.data,
+        mimeType:String(item.nombre||'').toLowerCase().endsWith('.pdf')?'application/pdf':'image/jpeg',
+        usuario:currentUser?.nombre||''
+      },BG_DELAY.uploadAndamioFile);
+      try{if(typeof syncLoadFromSheets==='function')await syncLoadFromSheets()}catch(e){}
+      toastLocal('Archivo subido a Drive');
+    }catch(e){console.error(e);toastLocal('Archivo pendiente de Drive');}
+  }
+  window.saveDoc=async function(){
+    const andId=valLocal('docAnd'),tipo=valLocal('docTipo'),name=clean(valLocal('docNombre'));
+    const file=document.getElementById('docFile')?.files?.[0];
+    if(!andId||!file){toastLocal('Selecciona un archivo');return}
+    const a=(db.andamios||[]).find(x=>String(x.id)===String(andId));if(!a)return;
+    const data=await fileToData(file);
+    const now=new Date().toISOString();
+    const item={id:idLocal(),tipo,nombre:name||file.name,fecha:now,usuario:currentUser?.nombre||'',data,driveId:'pendiente_drive'};
+    const category=String(tipo||'').toLowerCase().includes('foto')?'Fotos Adicionales':(String(tipo||'').toLowerCase().includes('fact')?'Facturacion':'Documentos');
+    if(category==='Fotos Adicionales'){a.photos=parseArr(a.photos);a.photos.push(item);if(!a.foto)a.foto=data;}
+    else{a.documentos=parseArr(a.documentos);a.documentos.push({...item,data:undefined});}
+    persistLocal();try{closeModal('documentModal')}catch(e){};try{openDetail(andId,category==='Fotos Adicionales'?'fotos':'documentos')}catch(e){}
+    toastLocal('Guardado. Subiendo a Drive en segundo plano.');
+    syncAndamioExtraFileBg(a,item,category);
+  };
+
+  function aisFiles(record){
+    const out=[];
+    (record.registros||[]).forEach(reg=>parseArr(reg.fotoFiles).forEach((f,i)=>out.push({reg,f,index:i+1})));
+    return out;
+  }
+  function aisCompact(record){
+    const resumen=typeof aisSummary==='function'?aisSummary(record):{};
+    const accesoriosResumen=typeof aisAccBreakdown==='function'?aisAccBreakdown(record):{};
+    return {
+      ...record,
+      syncVersion:'v3.3.7 background drive',
+      resumen,
+      accesoriosResumen,
+      registros:(record.registros||[]).map(reg=>({...reg,fotoFiles:undefined,fotosDetalle:parseArr(reg.fotoFiles).map(f=>({id:f.id,nombre:f.nombre,tipo:f.tipo,tamanio:f.tamanio}))}))
+    };
+  }
+  function aisLegajo(record){
+    return [String(record.fecha||new Date().toISOString()).slice(0,10),record.obra,record.sector,record.linea,record.isometrico].filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]+/g,'_');
+  }
+  function aisSaveHistoryLocal(record){
+    try{
+      aisState.history=aisState.history||[];
+      const idx=aisState.history.findIndex(x=>String(x.id)===String(record.id));
+      const copy=JSON.parse(JSON.stringify(record));
+      if(idx>=0)aisState.history[idx]=copy;else aisState.history.unshift(copy);
+      aisSave();
+    }catch(e){}
+  }
+  async function syncAisBg(record){
+    try{
+      const rec=aisCompact(record);rec.legajoNombre=aisLegajo(record);
+      await postBg('upsertAislacion',{aislacion:rec},BG_DELAY.upsertAislacion);
+      await new Promise(r=>setTimeout(r,1800));
+      for(const item of aisFiles(record)){
+        await postBg('uploadAislacionFile',{
+          aislacionId:record.id,
+          aislacion:rec,
+          legajoNombre:rec.legajoNombre,
+          category:'Fotos',
+          relation:item.reg.id,
+          tipo:'Foto de aislacion',
+          nombre:item.reg.title||item.f.nombre,
+          fileName:item.f.nombre||('foto_'+item.index+'.jpg'),
+          fileData:item.f.data,
+          mimeType:item.f.tipo||'image/jpeg',
+          usuario:currentUser?.nombre||record.usuario||''
+        },BG_DELAY.uploadAislacionFile);
+      }
+      aisSaveHistoryLocal({...record,syncStatus:'Sincronizado',syncedAt:new Date().toISOString(),drivePendiente:false});
+      try{if(typeof aisLoadFromSheets==='function')await aisLoadFromSheets({silent:true})}catch(e){}
+      renderAis();
+      toastLocal('Aislacion sincronizada con Drive');
+    }catch(e){
+      console.error(e);
+      aisSaveHistoryLocal({...record,syncStatus:'Pendiente de reintento',syncError:e.message||'No se pudo subir a Drive',drivePendiente:true});
+      renderAis();
+      toastLocal('Aislacion pendiente de Drive');
+    }
+  }
+  const prevAisFinish=window.aisFinish;
+  window.aisFinish=function(){
+    try{
+      if(!aisState.current){toastLocal('No hay recorrido activo');return}
+      let record={...aisState.current,estado:'Finalizado',finishedAt:new Date().toISOString(),syncStatus:'Pendiente Drive',drivePendiente:true};
+      if(typeof window.__aisPendingPhotoFiles!=='undefined'&&window.__aisPendingPhotoFiles.length&&typeof attachPending==='function')record=attachPending(record);
+      if(window.__aisPendingPhotoFiles&&window.__aisPendingPhotoFiles.length){
+        record.registros=record.registros||[];
+        let target=[...record.registros].reverse().find(r=>r.kind==='tramo'||r.kind==='accesorio'||r.kind==='equipo');
+        if(!target){target={id:idLocal(),kind:'foto',time:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),title:'Evidencia fotografica',desc:'Foto general',fotoFiles:[]};record.registros.push(target);}
+        target.fotoFiles=[...parseArr(target.fotoFiles),...window.__aisPendingPhotoFiles];
+        window.__aisPendingPhotoFiles=[];
+      }
+      aisSaveHistoryLocal(record);
+      aisState.current=null;aisSave();renderAis();
+      toastLocal('Finalizado. Drive sincroniza en segundo plano.');
+      setTimeout(()=>syncAisBg(record),300);
+    }catch(e){
+      console.error(e);
+      if(prevAisFinish)return prevAisFinish.apply(this,arguments);
+      toastLocal('No se pudo finalizar');
+    }
+  };
+  window.aisRetrySync=function(id){
+    try{
+      const record=(aisState.history||[]).find(x=>String(x.id)===String(id));
+      if(!record)return;
+      toastLocal('Reintentando Drive...');
+      syncAisBg(record);
+    }catch(e){toastLocal('No se pudo reintentar');}
+  };
+  try{saveAndamio=window.saveAndamio;addPhoto=window.addPhoto;saveDoc=window.saveDoc;aisFinish=window.aisFinish;aisRetrySync=window.aisRetrySync;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
