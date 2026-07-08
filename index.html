@@ -2514,7 +2514,55 @@ viewFO46 = function(andId,foId,print=false){
     renderAislacionPage();
   };
 
-  try{aisLiveHTML=window.aisLiveHTML;aisTakePhoto=window.aisTakePhoto;aisAddTramo=window.aisAddTramo;aisSaveProgress=window.aisSaveProgress;aisFinish=window.aisFinish;}catch(e){}
+  window.aisStartForm=function(){
+    try{aisLoad()}catch(e){aisState={current:null,history:[]}}
+    aisState.current=null;
+    window.__aisPendingPhotoFiles=[];
+    try{aisPendingPhotos=[]}catch(e){}
+    aisSave();
+    const c=document.getElementById('aisContent');
+    if(c){
+      c.innerHTML=typeof aisHomeHTML==='function'
+        ? aisHomeHTML()
+        : '<div class="aisCard"><h3>Nuevo relevamiento</h3><button class="btn primary" onclick="aisStart()">Comenzar</button></div>';
+    }
+    if(typeof aisSetNav==='function') aisSetNav('control');
+    setTimeout(()=>{
+      const first=document.getElementById('aisLinea')||document.getElementById('aisSector');
+      if(first) first.focus();
+    },80);
+  };
+
+  window.aisStart=function(){
+    const obra=val('aisObra');
+    const sector=val('aisSector');
+    const linea=val('aisLinea');
+    if(!obra||!sector||!linea){toastAis('Completa obra, sector y linea/equipo');return}
+    window.__aisPendingPhotoFiles=[];
+    try{aisPendingPhotos=[]}catch(e){}
+    aisState.current={
+      id:typeof cryptoId==='function'?cryptoId():'ais_'+Date.now(),
+      estado:'En proceso',
+      tipo:val('aisTask')||'montaje',
+      obra,
+      sector,
+      linea,
+      isometrico:val('aisIso'),
+      diametro:val('aisDiametro'),
+      material:val('aisMaterial'),
+      espesor:val('aisEspesor'),
+      capas:val('aisCapas'),
+      chapa:val('aisChapa'),
+      fecha:new Date().toISOString(),
+      usuario:currentUser?.nombre||'Usuario',
+      registros:[],
+      syncStatus:'Pendiente'
+    };
+    aisSave();
+    renderAislacionPage();
+  };
+
+  try{aisLiveHTML=window.aisLiveHTML;aisTakePhoto=window.aisTakePhoto;aisAddTramo=window.aisAddTramo;aisSaveProgress=window.aisSaveProgress;aisFinish=window.aisFinish;aisStartForm=window.aisStartForm;aisStart=window.aisStart;}catch(e){}
 })();
 </script>
 
