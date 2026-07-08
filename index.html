@@ -2736,5 +2736,187 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<style>
+/* ===== INFORMES AISLACION + IMPRESION PDF v3.3.4 ===== */
+.aisReportPage .reportActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin:0 0 10px}
+.aisReportPage .reportShell{margin-top:10px}
+.aisReportKpi b{display:block;font-size:24px;color:#0b2f6b}
+.aisReportKpi small{display:block;color:#607089;font-weight:900;text-transform:uppercase;font-size:10px;margin-top:3px}
+.aisReportPhotos{display:flex;gap:6px;flex-wrap:wrap}
+.aisReportPhotos img{width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #d8e2f0;background:#eef3f9}
+.aisReportDriveLink{font-weight:900;color:#075985;text-decoration:underline}
+@media print{
+  body.al-report-printing *{visibility:hidden!important}
+  body.al-report-printing #reportModal,
+  body.al-report-printing #reportModal *,
+  body.al-report-printing #reportBody,
+  body.al-report-printing #reportBody *{visibility:visible!important}
+  body.al-report-printing #reportModal{display:block!important;position:static!important;background:#fff!important;padding:0!important;overflow:visible!important}
+  body.al-report-printing #reportBody{position:absolute!important;left:0!important;top:0!important;width:100%!important;min-height:auto!important;padding:0!important;margin:0!important;background:#fff!important;color:#111!important;overflow:visible!important}
+  body.al-report-printing .modalCard,
+  body.al-report-printing .reportModalCard{display:block!important;width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
+  body.al-report-printing .modalHead,
+  body.al-report-printing .modalFoot,
+  body.al-report-printing .reportPreviewActions,
+  body.al-report-printing .mobileOnlyNotice{display:none!important}
+  body.al-report-printing .reportShell{box-shadow:none!important;border:0!important;border-radius:0!important;margin:0!important;page-break-after:auto!important}
+  body.al-report-printing .tableWrap{overflow:visible!important}
+  body.al-report-printing .reportTable{font-size:9px!important}
+}
+</style>
+
+<script>
+/* ===== INFORMES AISLACION + IMPRESION PDF v3.3.4 ===== */
+(function(){
+  'use strict';
+  const A=document;
+  function escLocal(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function asArr(v){if(Array.isArray(v))return v;try{const x=JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  function asObj(v){if(v&&typeof v==='object'&&!Array.isArray(v))return v;try{return JSON.parse(v||'{}')||{}}catch(e){return {}}}
+  function n(v){const x=Number(String(v??0).replace(',','.'));return Number.isFinite(x)?x:0}
+  function f(v){return typeof fmtNum==='function'?fmtNum(v):n(v).toLocaleString('es-AR',{maximumFractionDigits:2})}
+  function date(v){if(!v)return '-';try{return new Date(v).toLocaleDateString('es-AR')}catch(e){return String(v).slice(0,10)||'-'}}
+  function typeLabel(t){const s=String(t||'montaje').toLowerCase();if(s.includes('des'))return'Desmontaje';if(s.includes('rep'))return'Reparacion';return'Montaje'}
+  function photoUrl(item){if(!item)return'';if(typeof item==='string')return item;if(item.url)return item.url;if(item.data)return item.data;if(item.driveUrl)return item.driveUrl;if(item.fileUrl)return item.fileUrl;return''}
+  function reportRows(){
+    try{if(typeof aisLoad==='function')aisLoad()}catch(e){}
+    const rows=(typeof aisState!=='undefined'&&Array.isArray(aisState.history)?aisState.history:[]).slice();
+    return rows.sort((a,b)=>new Date(b.finishedAt||b.updatedAt||b.fecha||0)-new Date(a.finishedAt||a.updatedAt||a.fecha||0));
+  }
+  function summary(r){
+    const reg=asArr(r.registros);
+    const res=asObj(r.resumen);
+    const metros=res.metros!==undefined?n(res.metros):reg.reduce((a,x)=>a+n(x.longitud),0);
+    const m2=res.m2!==undefined?n(res.m2):metros;
+    const accesorios=res.accesorios!==undefined?n(res.accesorios):reg.filter(x=>x.kind==='accesorio').length;
+    const direct=asArr(r.fotos||r.photos).length;
+    const fromRegs=reg.reduce((a,x)=>a+asArr(x.fotoFiles||x.fotos||x.photos).length,0);
+    const fotoLinks=[...asArr(r.fotos||r.photos).map(photoUrl),...reg.flatMap(x=>asArr(x.fotoFiles||x.fotos||x.photos).map(photoUrl))].filter(Boolean);
+    return {metros,m2,accesorios,fotos:Math.max(n(res.fotos),direct+fromRegs),fotoLinks};
+  }
+  function metrics(rows){
+    return rows.reduce((a,r)=>{
+      const s=summary(r);
+      a.total++;
+      a.metros+=s.metros;
+      a.m2+=s.m2;
+      a.accesorios+=s.accesorios;
+      a.fotos+=s.fotos;
+      if(String(r.estado||'').toLowerCase().includes('final'))a.finalizados++;else a.enProceso++;
+      if(r.drivePendiente||String(r.syncStatus||'').toLowerCase().includes('pendiente'))a.pendientes++;
+      const t=typeLabel(r.tipo);a.tipos[t]=(a.tipos[t]||0)+1;
+      const obra=r.obra||'Sin obra';a.obras[obra]=a.obras[obra]||{obra,total:0,metros:0,fotos:0};a.obras[obra].total++;a.obras[obra].metros+=s.metros;a.obras[obra].fotos+=s.fotos;
+      return a;
+    },{total:0,metros:0,m2:0,accesorios:0,fotos:0,finalizados:0,enProceso:0,pendientes:0,tipos:{},obras:{}});
+  }
+  function headerBox(title){
+    const now=new Date().toLocaleString('es-AR');
+    return `<div class="reportHeader">
+      <div class="reportLogo"><div class="logoMark">AL</div></div>
+      <div class="reportName"><h2>${title}</h2><b>INFORME EJECUTIVO</b></div>
+      <div class="reportMeta"><b>OBRA:</b> Todas las obras<br><b>PERIODO:</b> Historial completo<br><b>FECHA Y HORA:</b> ${escLocal(now)}</div>
+    </div>`;
+  }
+  function kpi(icon,label,value,sub){
+    return `<div class="execCard aisReportKpi"><div class="execIcon">${icon}</div><b>${escLocal(value)}</b><small>${escLocal(label)}</small>${sub?`<em>${escLocal(sub)}</em>`:''}</div>`;
+  }
+  function renderAisReport(rows,insideModal){
+    const m=metrics(rows);
+    const byObra=Object.values(m.obras).sort((a,b)=>b.total-a.total);
+    const detail=rows.slice(0,60);
+    return `<div class="reportShell aisReportShell">
+      ${insideModal?'<div class="mobileOnlyNotice">Para PDF usa Imprimir / Guardar PDF y elegi "Guardar como PDF".</div>':''}
+      ${headerBox('CONTROL DE AISLACION')}
+      <h4>RESUMEN EJECUTIVO</h4>
+      <div class="execGrid">
+        ${kpi('🧾','Relevamientos',m.total,'registros')}
+        ${kpi('📏','Metros relevados',f(m.metros)+' m','lineales')}
+        ${kpi('📐','M2 estimados',f(m.m2),'m2')}
+        ${kpi('🧩','Accesorios',m.accesorios,'unidades')}
+        ${kpi('📷','Fotos',m.fotos,'archivos')}
+        ${kpi('⚠','Pendientes Drive',m.pendientes,'registros')}
+      </div>
+      <div class="reportTwoCols">
+        <div class="reportPanel"><h4>ESTADO OPERATIVO</h4>
+          <div class="statusMiniGrid">
+            <div><b>${m.finalizados}</b><small>Finalizados</small></div>
+            <div><b>${m.enProceso}</b><small>En proceso</small></div>
+            <div><b>${m.tipos.Montaje||0}</b><small>Montajes</small></div>
+            <div><b>${(m.tipos.Desmontaje||0)+(m.tipos.Reparacion||0)}</b><small>Otros trabajos</small></div>
+          </div>
+        </div>
+        <div class="reportPanel"><h4>RESUMEN POR OBRA</h4>
+          <div class="tableWrap"><table class="reportTable"><thead><tr><th>Obra</th><th>Reg.</th><th>Metros</th><th>Fotos</th></tr></thead><tbody>
+          ${byObra.length?byObra.map(o=>`<tr><td>${escLocal(o.obra)}</td><td>${o.total}</td><td>${f(o.metros)}</td><td>${o.fotos}</td></tr>`).join(''):'<tr><td colspan="4">Sin datos cargados</td></tr>'}
+          </tbody></table></div>
+        </div>
+      </div>
+      <h4>DETALLE DE AISLACIONES</h4>
+      <div class="tableWrap"><table class="reportTable"><thead><tr><th>Fecha</th><th>Obra</th><th>Sector</th><th>Linea / Equipo</th><th>Tipo</th><th>Material</th><th>Chapa</th><th>Metros</th><th>Fotos</th><th>Drive</th></tr></thead><tbody>
+        ${detail.length?detail.map(r=>{const s=summary(r);const drive=r.driveFolderUrl||r.fotosFolderUrl||r.carpetaFotos||'';return `<tr><td>${date(r.finishedAt||r.fecha)}</td><td>${escLocal(r.obra)}</td><td>${escLocal(r.sector)}</td><td>${escLocal(r.linea)}</td><td>${escLocal(typeLabel(r.tipo))}</td><td>${escLocal(r.material||'-')}</td><td>${escLocal(r.chapa||'-')}</td><td>${f(s.metros)}</td><td>${s.fotos}</td><td>${drive?`<a class="aisReportDriveLink" href="${escLocal(drive)}" target="_blank">Carpeta</a>`:'-'}</td></tr>`}).join(''):'<tr><td colspan="10">No hay aislaciones para informar.</td></tr>'}
+      </tbody></table></div>
+      <h4>FOTOS RECIENTES</h4>
+      <div class="aisReportPhotos">${rows.flatMap(r=>summary(r).fotoLinks).slice(0,18).map(src=>`<a href="${escLocal(src)}" target="_blank"><img src="${escLocal(src)}" alt="Foto"></a>`).join('')||'<span class="empty">No hay miniaturas disponibles en los datos locales.</span>'}</div>
+    </div>`;
+  }
+  window.printReport=function(){
+    document.body.classList.add('al-report-printing');
+    setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('al-report-printing'),600)},220);
+  };
+  window.startAisReportGeneration=function(){
+    const rows=reportRows();
+    const title=A.getElementById('reportTitle'),body=A.getElementById('reportBody'),foot=A.getElementById('reportFoot');
+    if(title)title.textContent='Informe de aislacion';
+    if(body)body.innerHTML=renderAisReport(rows,true);
+    if(foot)foot.innerHTML=`<button class="btn ghost" onclick="closeModal('reportModal')">Cerrar</button><button class="btn ghost" onclick="shareAisInformeWhatsApp()">WhatsApp</button><button class="btn primary" onclick="printReport()">Imprimir / Guardar PDF</button>`;
+    if(typeof openModal==='function')openModal('reportModal');
+  };
+  window.shareAisInformeWhatsApp=function(){
+    const rows=reportRows(),m=metrics(rows);
+    const msg=`Informe de Aislacion%0A%0ARelevamientos: ${m.total}%0AFinalizados: ${m.finalizados}%0AMetros: ${f(m.metros)} m%0AFotos: ${m.fotos}%0APendientes Drive: ${m.pendientes}`;
+    window.open('https://wa.me/?text='+msg,'_blank');
+  };
+  const oldFinish=window.finishReportGeneration;
+  if(oldFinish){
+    window.finishReportGeneration=function(){
+      oldFinish();
+      const foot=A.getElementById('reportFoot');
+      if(foot)foot.innerHTML=`<button class="btn ghost" onclick="closeModal('reportModal')">Cerrar</button><button class="btn ghost" onclick="shareInformeWhatsApp()">WhatsApp</button><button class="btn primary" onclick="printReport()">Imprimir / Guardar PDF</button>`;
+    };
+    try{finishReportGeneration=window.finishReportGeneration}catch(e){}
+  }
+  window.aisReportBackHome=function(){
+    window.__aisCurrentView='control';
+    window.__aisAllowControlRender=true;
+    try{renderAislacionPage()}finally{setTimeout(()=>{window.__aisAllowControlRender=false},80)}
+  };
+  window.aisShowInforme=function(opts={}){
+    window.__aisCurrentView='informes';
+    if(typeof aisLoad==='function')aisLoad();
+    const c=A.getElementById('aisContent');
+    const rows=reportRows();
+    if(c)c.innerHTML=`<div class="aisReportPage">
+      <div class="aisHeader"><div><h2>Informes de aislacion</h2><p>Resumen ejecutivo, detalle por obra y respaldo de fotos.</p></div><button class="btn ghost" onclick="aisReportBackHome()">Volver</button><button class="btn primary" onclick="startAisReportGeneration()">Generar PDF</button></div>
+      <div class="reportActions"><button class="btn ghost" onclick="shareAisInformeWhatsApp()">WhatsApp</button><button class="btn primary" onclick="startAisReportGeneration()">Imprimir / Guardar PDF</button></div>
+      ${renderAisReport(rows,false)}
+    </div>`;
+    if(typeof aisSetNav==='function')aisSetNav('informes');
+    if(!opts.noSheet&&typeof aisLoadFromSheets==='function')aisLoadFromSheets({silent:true});
+  };
+  const oldRenderAisPage=window.renderAislacionPage;
+  if(oldRenderAisPage){
+    window.renderAislacionPage=function(){
+      if(window.__aisCurrentView==='informes'&&!window.__aisAllowControlRender){
+        setTimeout(()=>window.aisShowInforme({noSheet:true}),0);
+        return;
+      }
+      window.__aisCurrentView='control';
+      return oldRenderAisPage.apply(this,arguments);
+    };
+  }
+  try{aisShowInforme=window.aisShowInforme;aisReportBackHome=window.aisReportBackHome;startAisReportGeneration=window.startAisReportGeneration;printReport=window.printReport;renderAislacionPage=window.renderAislacionPage;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
