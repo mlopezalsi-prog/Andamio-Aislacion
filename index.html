@@ -2566,5 +2566,125 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<script>
+/* ===== AISLACION LECTURA SHEETS v3.3.3 ===== */
+(function(){
+  'use strict';
+  const AIS_WEBAPP_URL='https://script.google.com/macros/s/AKfycbyD_hNV6e98rQHnR90SA7tYijOcs6F6Hez76E4BOM7rYcb-THJIYkuoQDtSiucgV_wIbA/exec';
+  let aisSheetBusy=false;
+
+  function toastAis(msg){if(typeof aisMiniToast==='function')aisMiniToast(msg);else if(typeof toast==='function')toast(msg);}
+  function arr(v){if(Array.isArray(v))return v;try{const x=JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  function obj(v){if(v&&typeof v==='object'&&!Array.isArray(v))return v;try{return JSON.parse(v||'{}')||{}}catch(e){return {}}}
+  function pick(row,names){for(const n of names){if(row[n]!==undefined&&row[n]!==null&&String(row[n]).trim()!=='')return row[n]}return ''}
+  function jsonp(action,params={}){
+    return new Promise((resolve,reject)=>{
+      const cb='ais_sheet_cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const s=document.createElement('script');
+      const timer=setTimeout(()=>{cleanup();reject(new Error('Tiempo agotado leyendo Aislaciones'))},22000);
+      function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(e){}try{s.remove()}catch(e){}}
+      window[cb]=res=>{cleanup();resolve(res)};
+      s.onerror=()=>{cleanup();reject(new Error('No se pudo leer Aislaciones desde Sheets'))};
+      const q=new URLSearchParams({action,callback:cb,_:Date.now(),...params});
+      s.src=AIS_WEBAPP_URL+'?'+q.toString();
+      document.body.appendChild(s);
+    });
+  }
+  function normalizeSheetAis(row){
+    const resumen=obj(pick(row,['Resumen','resumen']));
+    const registros=arr(pick(row,['Registros','registros']));
+    const fotos=arr(pick(row,['Fotos','fotos','photos']));
+    const documentos=arr(pick(row,['Documentos','documentos']));
+    const id=pick(row,['ID','id']);
+    return {
+      id:id||('sheet_'+Date.now()+'_'+Math.random().toString(36).slice(2)),
+      ot:pick(row,['OT','ot']),
+      obra:pick(row,['Obra','obra']),
+      sector:pick(row,['Sector','sector']),
+      linea:pick(row,['Línea / Equipo','Linea / Equipo','linea']),
+      estado:pick(row,['Estado','estado'])||'Finalizado',
+      supervisorPlanta:pick(row,['Supervisor Planta','supervisorPlanta']),
+      supervisorAL:pick(row,['Supervisor AL','supervisorAL']),
+      fecha:pick(row,['Fecha','fecha','CreatedAt','createdAt']),
+      usuario:pick(row,['Usuario','usuario']),
+      observaciones:pick(row,['Observaciones','observaciones']),
+      tipo:pick(row,['Tipo','tipo'])||'montaje',
+      isometrico:pick(row,['Isométrico','Isometrico','isometrico']),
+      diametro:pick(row,['Diámetro','Diametro','diametro']),
+      material:pick(row,['Material','material']),
+      espesor:pick(row,['Espesor','espesor']),
+      capas:pick(row,['Capas','capas']),
+      chapa:pick(row,['Chapa','chapa']),
+      resumen,
+      registros,
+      fotos,
+      photos:fotos,
+      documentos,
+      historial:arr(pick(row,['Historial','historial'])),
+      syncStatus:pick(row,['SyncStatus','syncStatus'])||'Sincronizado',
+      drivePendiente:false,
+      driveFolderId:pick(row,['DriveFolderId','driveFolderId']),
+      driveFolderUrl:pick(row,['DriveFolderUrl','driveFolderUrl']),
+      fotoFileId:pick(row,['fotoFileId','Foto (ID Drive)','fotoDriveId']),
+      fotoFileUrl:pick(row,['fotoFileUrl','foto'])
+    };
+  }
+  function mergeHistory(sheetRows){
+    aisLoad();
+    const local=aisState.history||[];
+    const map=new Map();
+    sheetRows.forEach(r=>map.set(String(r.id),r));
+    local.forEach(r=>{
+      const id=String(r.id);
+      if(!map.has(id))map.set(id,r);
+      else{
+        const fromSheet=map.get(id);
+        const localDate=new Date(r.updatedAt||r.finishedAt||r.fecha||0).getTime();
+        const sheetDate=new Date(fromSheet.updatedAt||fromSheet.finishedAt||fromSheet.fecha||0).getTime();
+        map.set(id,localDate>sheetDate?{...fromSheet,...r}:{...r,...fromSheet});
+      }
+    });
+    aisState.history=[...map.values()].sort((a,b)=>new Date(b.finishedAt||b.fecha||0)-new Date(a.finishedAt||a.fecha||0));
+    aisSave();
+    return aisState.history.length;
+  }
+  window.aisLoadFromSheets=async function(opts={}){
+    if(aisSheetBusy)return;
+    aisSheetBusy=true;
+    try{
+      if(!opts.silent)toastAis('Cargando aislaciones desde Sheets...');
+      const res=await jsonp('listAislaciones');
+      if(!res||res.ok===false)throw new Error(res?.error||'No se pudo leer AISLACIONES');
+      const rows=(res.aislaciones||[]).map(normalizeSheetAis).filter(r=>r.id);
+      const total=mergeHistory(rows);
+      if(!opts.silent)toastAis('Aislaciones actualizadas: '+total);
+      if(!aisState.current&&document.getElementById('aisContent'))renderAislacionPage();
+    }catch(e){
+      console.error(e);
+      if(!opts.silent)toastAis(e.message||'No se pudo cargar Aislaciones');
+    }finally{aisSheetBusy=false;}
+  };
+
+  const baseAisShowHistory=window.aisShowHistory;
+  window.aisShowHistory=function(){
+    baseAisShowHistory();
+    aisLoadFromSheets({silent:true});
+  };
+  const baseAisShowInforme=window.aisShowInforme;
+  if(baseAisShowInforme){
+    window.aisShowInforme=function(){
+      baseAisShowInforme();
+      aisLoadFromSheets({silent:true});
+    };
+  }
+  const baseEnterPlatform=window.enterPlatform;
+  window.enterPlatform=function(platform){
+    baseEnterPlatform(platform);
+    if(platform==='aislacion')setTimeout(()=>aisLoadFromSheets({silent:true}),1800);
+  };
+  try{aisShowHistory=window.aisShowHistory;aisShowInforme=window.aisShowInforme;enterPlatform=window.enterPlatform;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
