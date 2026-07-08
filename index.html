@@ -1455,6 +1455,17 @@ viewFO46 = function(andId,foId,print=false){
       setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){} resolve({ok:true})},1800);
     });
   }
+  async function postWithRetry(action,payload,tries=2){
+    let last;
+    for(let i=0;i<tries;i++){
+      try{
+        last=await post(action,payload);
+        if(i>0) await new Promise(r=>setTimeout(r,700));
+      }catch(e){last=e}
+      if(i<tries-1) await new Promise(r=>setTimeout(r,1800));
+    }
+    return last;
+  }
   function dataJson(obj){
     return 'data:application/json;base64,'+btoa(unescape(encodeURIComponent(JSON.stringify(obj,null,2))));
   }
@@ -2439,11 +2450,12 @@ viewFO46 = function(andId,foId,print=false){
     saveHistory({...record,syncStatus:'Enviando'});
     toastAis('Enviando aislacion a Drive...');
     await post('upsertAislacion',{aislacion:rec});
-    await new Promise(r=>setTimeout(r,2200));
+    await new Promise(r=>setTimeout(r,5200));
     const files=allRecordFiles(record);
     for(const item of files){
-      await post('uploadAislacionFile',{
+      await postWithRetry('uploadAislacionFile',{
         aislacionId:record.id,
+        aislacion:rec,
         legajoNombre:rec.legajoNombre,
         category:'Fotos',
         relation:item.reg.id,
@@ -2453,8 +2465,8 @@ viewFO46 = function(andId,foId,print=false){
         fileData:item.f.data,
         mimeType:item.f.tipo||'image/jpeg',
         usuario:currentUser?.nombre||record.usuario||''
-      });
-      await new Promise(r=>setTimeout(r,1200));
+      },2);
+      await new Promise(r=>setTimeout(r,1800));
     }
     const finalRecord={...record,syncStatus:'Sincronizado',syncedAt:new Date().toISOString(),drivePendiente:false};
     saveHistory(finalRecord);
