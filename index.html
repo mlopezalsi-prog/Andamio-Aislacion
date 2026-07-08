@@ -2296,5 +2296,227 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<style>
+/* ===== AISLACION BITACORA + BOTONES v3.3.2 ===== */
+.aisEntry{
+  position:relative;
+}
+.aisEntryPhotos{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.aisEntryPhotos img{
+  width:72px;
+  height:72px;
+  object-fit:cover;
+  border-radius:10px;
+  border:1px solid rgba(148,163,184,.28);
+}
+.aisEntryPhotos a{
+  display:block;
+}
+.aisEntry.pendingPhoto{
+  border-style:dashed;
+  border-color:rgba(59,130,246,.45);
+}
+</style>
+
+<script>
+/* ===== AISLACION BITACORA + BOTONES v3.3.2 ===== */
+(function(){
+  'use strict';
+  const AIS_WEBAPP_URL='https://script.google.com/macros/s/AKfycbyD_hNV6e98rQHnR90SA7tYijOcs6F6Hez76E4BOM7rYcb-THJIYkuoQDtSiucgV_wIbA/exec';
+  const AIS_SYNC_VERSION='v3.3.2 aislacion fotos bitacora';
+  window.__aisPendingPhotoFiles=window.__aisPendingPhotoFiles||[];
+
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function arr(v){if(Array.isArray(v))return v;try{const x=JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  function nowTime(){return typeof aisNow==='function'?aisNow():new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});}
+  function toastAis(msg){if(typeof aisMiniToast==='function')aisMiniToast(msg);else if(typeof toast==='function')toast(msg);}
+  function driveThumb(id){return id?'https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w500':'';}
+  function fileIdFromUrl(url){const s=String(url||'');let m=s.match(/[?&]id=([^&]+)/);if(m)return m[1];m=s.match(/\/d\/([^/]+)/);return m?m[1]:'';}
+  function fileImg(f){return f?.data||f?.fileUrl||f?.fotoFileUrl||driveThumb(f?.driveId||f?.id||fileIdFromUrl(f?.driveUrl||f?.fileUrl));}
+  function regPhotos(reg){
+    const local=arr(reg?.fotoFiles);
+    const detail=arr(reg?.fotosDetalle);
+    const photos=arr(reg?.photos);
+    return [...local,...detail,...photos].map(fileImg).filter(Boolean);
+  }
+  function allRecordFiles(record){
+    const files=[];
+    (record.registros||[]).forEach(reg=>{
+      arr(reg.fotoFiles).forEach((f,i)=>files.push({reg,f,index:i+1}));
+    });
+    return files;
+  }
+  function attachPending(record){
+    const pending=window.__aisPendingPhotoFiles||[];
+    if(!record||!pending.length)return record;
+    record.registros=record.registros||[];
+    let target=[...record.registros].reverse().find(r=>r.kind==='tramo'||r.kind==='accesorio'||r.kind==='equipo');
+    if(!target){
+      target={id:typeof cryptoId==='function'?cryptoId():'foto_'+Date.now(),kind:'foto',time:nowTime(),title:'Evidencia fotografica',desc:'Foto general del relevamiento',fotos:0,fotoFiles:[]};
+      record.registros.push(target);
+    }
+    target.fotoFiles=[...arr(target.fotoFiles),...pending];
+    target.fotos=arr(target.fotoFiles).length;
+    window.__aisPendingPhotoFiles=[];
+    try{aisPendingPhotos=[]}catch(e){}
+    return record;
+  }
+  function saveHistory(record){
+    aisState.history=aisState.history||[];
+    const copy=JSON.parse(JSON.stringify(record));
+    const idx=aisState.history.findIndex(x=>x.id===record.id);
+    if(idx>=0)aisState.history[idx]=copy;
+    else aisState.history.unshift(copy);
+    aisSave();
+  }
+  function post(action,payload={}){
+    return new Promise(resolve=>{
+      const iframeName='ais_fix_post_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const iframe=document.createElement('iframe');
+      iframe.name=iframeName;iframe.style.display='none';
+      const form=document.createElement('form');
+      form.method='POST';form.action=AIS_WEBAPP_URL;form.target=iframeName;form.style.display='none';
+      const input=document.createElement('textarea');
+      input.name='payload';input.value=JSON.stringify({action,...payload});
+      form.appendChild(input);document.body.appendChild(iframe);document.body.appendChild(form);
+      form.submit();
+      setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){}resolve({ok:true})},1800);
+    });
+  }
+  function fileToDataUrl(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(reader.error||new Error('No se pudo leer la foto'));
+      reader.readAsDataURL(file);
+    });
+  }
+  function compact(record){
+    const resumen=typeof aisSummary==='function'?aisSummary(record):{};
+    const accesoriosResumen=typeof aisAccBreakdown==='function'?aisAccBreakdown(record):{};
+    return {
+      ...record,
+      syncVersion:AIS_SYNC_VERSION,
+      resumen,
+      accesoriosResumen,
+      registros:(record.registros||[]).map(reg=>({
+        ...reg,
+        fotoFiles:undefined,
+        fotosDetalle:arr(reg.fotoFiles).map(f=>({id:f.id,nombre:f.nombre,tipo:f.tipo,tamanio:f.tamanio}))
+      }))
+    };
+  }
+  function legajoName(record){
+    const fecha=(record.fecha||new Date().toISOString()).slice(0,10);
+    return [fecha,record.obra,record.sector,record.linea,record.isometrico].filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]+/g,'_');
+  }
+  async function syncRecord(record){
+    const rec=compact(record);
+    rec.legajoNombre=legajoName(record);
+    rec.syncStatus='Enviando';
+    saveHistory({...record,syncStatus:'Enviando'});
+    toastAis('Enviando aislacion a Drive...');
+    await post('upsertAislacion',{aislacion:rec});
+    await new Promise(r=>setTimeout(r,2200));
+    const files=allRecordFiles(record);
+    for(const item of files){
+      await post('uploadAislacionFile',{
+        aislacionId:record.id,
+        legajoNombre:rec.legajoNombre,
+        category:'Fotos',
+        relation:item.reg.id,
+        tipo:'Foto de aislacion',
+        nombre:item.reg.title||item.f.nombre,
+        fileName:item.f.nombre||('foto_'+item.index+'.jpg'),
+        fileData:item.f.data,
+        mimeType:item.f.tipo||'image/jpeg',
+        usuario:currentUser?.nombre||record.usuario||''
+      });
+      await new Promise(r=>setTimeout(r,1200));
+    }
+    const finalRecord={...record,syncStatus:'Sincronizado',syncedAt:new Date().toISOString(),drivePendiente:false};
+    saveHistory(finalRecord);
+    toastAis(files.length?'Legajo y fotos enviados':'Legajo enviado');
+    return finalRecord;
+  }
+
+  window.aisLiveHTML=function(record){
+    const regs=(record?.registros||[]).slice().reverse();
+    const pending=window.__aisPendingPhotoFiles||[];
+    const pendingHtml=pending.length?`<div class="aisEntry pendingPhoto"><div class="aisEntryIcon">Foto</div><div><b>Fotos listas para adjuntar</b><small>Se guardan con el proximo tramo o al finalizar.</small><div class="aisEntryPhotos">${pending.map(f=>`<img src="${esc(f.data)}" alt="${esc(f.nombre||'foto')}">`).join('')}</div></div><div class="time">${nowTime()}</div></div>`:'';
+    if(!regs.length&&!pending.length)return `<div class="empty">La bitacora se arma automaticamente mientras registras el recorrido.</div>`;
+    return pendingHtml+regs.map(x=>{
+      const icon=x.kind==='tramo'?'Med':x.kind==='accesorio'?'Acc':x.kind==='equipo'?'Eq':x.kind==='foto'?'Foto':'Obs';
+      const photos=regPhotos(x);
+      return `<div class="aisEntry"><div class="aisEntryIcon">${icon}</div><div><b>${esc(x.title||'Registro')}</b><small>${esc(x.desc||'')}</small>${photos.length?`<div class="aisEntryPhotos">${photos.map(src=>`<a href="${esc(src)}" target="_blank"><img src="${esc(src)}" alt="Foto ${esc(x.title||'registro')}"></a>`).join('')}</div>`:''}</div><div class="time">${esc(x.time||'')}</div></div>`;
+    }).join('');
+  };
+
+  window.aisTakePhoto=function(ev){
+    const file=ev.target.files?.[0];
+    if(!file)return;
+    fileToDataUrl(file).then(data=>{
+      const item={id:typeof cryptoId==='function'?cryptoId():'foto_'+Date.now(),nombre:file.name||('foto_'+Date.now()+'.jpg'),tipo:file.type||'image/jpeg',tamanio:file.size||0,data};
+      window.__aisPendingPhotoFiles.push(item);
+      try{aisPendingPhotos.push(file.name||'foto')}catch(e){}
+      const c=document.getElementById('aisPhotoCount');if(c)c.textContent='Fotos '+window.__aisPendingPhotoFiles.length;
+      const p=document.getElementById('aisPhotoPreview');if(p)p.innerHTML=`<img src="${esc(data)}" alt="Foto pendiente"><span>${window.__aisPendingPhotoFiles.length} foto/s listas</span>`;
+      const live=document.querySelector('.aisLive');if(live&&aisState.current)live.innerHTML=aisLiveHTML(aisState.current);
+      toastAis('Foto agregada a la bitacora');
+    }).catch(()=>toastAis('No se pudo cargar la foto'));
+    ev.target.value='';
+  };
+
+  window.aisAddTramo=function(){
+    if(!aisState.current)return;
+    const n=Number(String(val('aisLen')).replace(',','.'));
+    if(!n||n<=0){toastAis('Ingresa una longitud valida');return}
+    const obs=val('aisObs'),desde=val('aisDesde'),hasta=val('aisHasta');
+    const reg={id:typeof cryptoId==='function'?cryptoId():'tramo_'+Date.now(),kind:'tramo',time:nowTime(),longitud:n,desde,hasta,obs,title:'+'+fmtNum(n)+' m',desc:`${desde||'Inicio'} -> ${hasta||'Fin'}${obs?' - '+obs:''}`,fotoFiles:window.__aisPendingPhotoFiles.slice()};
+    reg.fotos=arr(reg.fotoFiles).length;
+    aisState.current.registros=aisState.current.registros||[];
+    aisState.current.registros.push(reg);
+    window.__aisPendingPhotoFiles=[];
+    try{aisPendingPhotos=[]}catch(e){}
+    aisSave();
+    renderAislacionPage();
+    toastAis('Tramo guardado');
+  };
+
+  window.aisSaveProgress=function(){
+    if(!aisState.current){toastAis('No hay recorrido activo');return}
+    aisState.current=attachPending({...aisState.current});
+    aisState.current.estado='En proceso';
+    aisState.current.updatedAt=new Date().toISOString();
+    aisState.current.syncStatus=aisState.current.syncStatus||'Pendiente';
+    saveHistory(aisState.current);
+    renderAislacionPage();
+    toastAis('Avance guardado');
+  };
+
+  window.aisFinish=async function(){
+    if(!aisState.current){toastAis('No hay recorrido activo');return}
+    let record=attachPending({...aisState.current,estado:'Finalizado',finishedAt:new Date().toISOString(),syncStatus:'Pendiente',drivePendiente:true});
+    aisState.current=record;
+    saveHistory(record);
+    try{await syncRecord(record)}
+    catch(e){
+      saveHistory({...record,syncStatus:'Pendiente de reintento',syncError:e.message||'No se pudo sincronizar'});
+      toastAis('Quedo pendiente de sincronizar');
+    }
+    aisState.current=null;
+    aisSave();
+    renderAislacionPage();
+  };
+
+  try{aisLiveHTML=window.aisLiveHTML;aisTakePhoto=window.aisTakePhoto;aisAddTramo=window.aisAddTramo;aisSaveProgress=window.aisSaveProgress;aisFinish=window.aisFinish;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
