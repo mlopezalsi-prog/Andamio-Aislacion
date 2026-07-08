@@ -1551,6 +1551,29 @@ viewFO46 = function(andId,foId,print=false){
     aisSave();
   }
 
+  function attachPendingPhotosToRecord(record){
+    if(!record || !pendingPhotoFiles.length) return record;
+    record.registros=record.registros||[];
+    let target=[...record.registros].reverse().find(reg=>reg.kind==='tramo' || reg.kind==='foto');
+    if(!target){
+      target={
+        id:(typeof cryptoId==='function'?cryptoId():('foto_'+Date.now())),
+        kind:'foto',
+        time:typeof aisNow==='function'?aisNow():'',
+        title:'Evidencia fotografica',
+        desc:'Foto general del relevamiento',
+        fotos:0,
+        fotoFiles:[]
+      };
+      record.registros.push(target);
+    }
+    target.fotoFiles=[...(target.fotoFiles||[]),...pendingPhotoFiles];
+    target.fotos=(target.fotoFiles||[]).length;
+    pendingPhotoFiles=[];
+    try{aisPendingPhotos=[]}catch(e){}
+    return record;
+  }
+
   async function syncAislacionRecord(record, opts={}){
     const rec=compactAisRecord(record);
     rec.legajoNombre=aisLegajoName(record);
@@ -1602,6 +1625,8 @@ viewFO46 = function(andId,foId,print=false){
       try{aisPendingPhotos.push(file.name||'foto')}catch(e){}
       const c=document.getElementById('aisPhotoCount');
       if(c)c.textContent='Fotos '+pendingPhotoFiles.length;
+      const p=document.getElementById('aisPhotoPreview');
+      if(p)p.innerHTML=`<img src="${data}" alt="Foto pendiente"><span>${pendingPhotoFiles.length} foto/s listas</span>`;
       if(typeof aisMiniToast==='function') aisMiniToast('Foto lista para el proximo registro');
     }).catch(()=>{if(typeof aisMiniToast==='function') aisMiniToast('No se pudo cargar la foto')});
     ev.target.value='';
@@ -1629,7 +1654,7 @@ viewFO46 = function(andId,foId,print=false){
 
   window.aisFinish=async function(){
     if(!aisState.current) return;
-    const record={...aisState.current,estado:'Finalizado',finishedAt:new Date().toISOString(),syncStatus:'Pendiente',drivePendiente:true};
+    const record=attachPendingPhotosToRecord({...aisState.current,estado:'Finalizado',finishedAt:new Date().toISOString(),syncStatus:'Pendiente',drivePendiente:true});
     aisState.current=record;
     aisSaveProgress();
     try{
@@ -1928,12 +1953,48 @@ viewFO46 = function(andId,foId,print=false){
 }
 .aisHistCard.polished{
   display:grid;
-  grid-template-columns:minmax(0,1.25fr) auto;
+  grid-template-columns:74px minmax(0,1.25fr) auto;
   gap:12px;
   padding:12px;
   border:1px solid rgba(148,163,184,.22);
   border-radius:12px;
   background:rgba(15,23,42,.58);
+}
+.aisHistThumb{
+  width:74px;
+  min-height:74px;
+  border-radius:10px;
+  overflow:hidden;
+  background:rgba(148,163,184,.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#94a3b8;
+  font-size:11px;
+  font-weight:800;
+}
+.aisHistThumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.aisPhotoPreview{
+  margin-top:8px;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#94a3b8;
+  font-size:12px;
+  font-weight:800;
+}
+.aisPhotoPreview img{
+  width:58px;
+  height:58px;
+  object-fit:cover;
+  border-radius:10px;
+  border:1px solid rgba(148,163,184,.28);
 }
 .aisHistTitle{
   display:flex;
@@ -2018,6 +2079,10 @@ viewFO46 = function(andId,foId,print=false){
   .aisHistCard.polished{
     grid-template-columns:1fr;
   }
+  .aisHistThumb{
+    width:100%;
+    height:120px;
+  }
   .aisHistSide{
     align-items:flex-start;
   }
@@ -2059,6 +2124,36 @@ viewFO46 = function(andId,foId,print=false){
     try{return (typeof aisSummary==='function'?aisSummary(r).fotos:0)||0}catch(e){return 0}
   }
 
+  function parseMaybeArray(v){
+    if(Array.isArray(v)) return v;
+    try{const x=JSON.parse(v||'[]'); return Array.isArray(x)?x:[]}catch(e){return []}
+  }
+
+  function driveThumbFromId(id){
+    return id ? 'https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w320' : '';
+  }
+
+  function fileIdFromUrl(url){
+    const s=String(url||'');
+    let m=s.match(/[?&]id=([^&]+)/);
+    if(m) return m[1];
+    m=s.match(/\/d\/([^/]+)/);
+    return m ? m[1] : '';
+  }
+
+  function aisThumb(r){
+    const regs=parseMaybeArray(r?.registros);
+    for(const reg of regs){
+      const files=parseMaybeArray(reg.fotoFiles);
+      if(files[0]?.data) return files[0].data;
+      const det=parseMaybeArray(reg.fotosDetalle);
+      if(det[0]?.driveId) return driveThumbFromId(det[0].driveId);
+    }
+    const photos=[...parseMaybeArray(r?.Fotos),...parseMaybeArray(r?.fotos),...parseMaybeArray(r?.photos)];
+    const p=photos[0]||{};
+    return p.data || p.fileUrl || p.fotoFileUrl || driveThumbFromId(p.driveId || p.id || fileIdFromUrl(p.driveUrl || p.fileUrl));
+  }
+
   function matches(r){
     const f=window.aisFilters||{};
     const q=(f.q||'').trim().toLowerCase();
@@ -2093,7 +2188,9 @@ viewFO46 = function(andId,foId,print=false){
       const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,tramos:0,acc:0,fotos:0};
       const st=syncState(r);
       const canRetry=r.estado==='Finalizado' && st.cls!=='ok';
+      const thumb=aisThumb(r);
       return `<div class="aisHistCard polished">
+        <div class="aisHistThumb">${thumb?`<img src="${esc(thumb)}" alt="Foto ${esc(r.linea||'aislacion')}">`:'Sin foto'}</div>
         <div class="aisHistMain">
           <div class="aisHistTitle"><span class="aisTypeDot ${esc(r.tipo||'montaje')}"></span><h3>${esc(r.linea||'Sin linea')}</h3></div>
           <div class="aisHistMeta">${esc(typeText(r.tipo))} &middot; ${esc(r.obra||'-')} &middot; ${esc(r.sector||'-')}<br>Fecha: ${safeDate(r.fecha)}${r.isometrico?' &middot; ISO: '+esc(r.isometrico):''}</div>
@@ -2128,17 +2225,74 @@ viewFO46 = function(andId,foId,print=false){
     const st=syncState(r);
     return `<div class="aisTop aisWorkTop"><div><h2>${esc(r.linea||'Aislacion')}</h2><p>${esc(typeText(r.tipo))} &middot; ${esc(r.obra||'-')} &middot; ${esc(r.sector||'-')}</p><div class="aisCurrentMeta"><span class="aisChip">Diametro: ${esc(r.diametro||'-')}</span><span class="aisChip">Material: ${esc(r.material||'-')}</span><span class="aisChip">Espesor: ${esc(r.espesor||'-')}</span>${r.isometrico?`<span class="aisChip">ISO: ${esc(r.isometrico)}</span>`:''}</div></div><div class="actions"><span class="aisSyncBadge ${st.cls}">${esc(st.txt)}</span><button class="btn ghost" onclick="aisSaveProgress()">Guardar avance</button><button class="btn primary" onclick="aisFinish()">Finalizar y enviar</button></div></div>
     <div class="aisStats"><div class="aisStat"><span>Metros ${esc(verb)}</span><b>${fmtNum(s.metros||0)} m</b></div><div class="aisStat"><span>m2 estimados</span><b>${fmtNum(s.m2||0)}</b></div><div class="aisStat"><span>Tramos / acc.</span><b>${s.tramos||0} / ${s.acc||0}</b></div><div class="aisStat"><span>Fotos</span><b>${s.fotos||0}</b></div></div>
-    <div class="aisGrid aisWorkGrid"><div class="aisCard"><h3>Carga rapida</h3><div class="readOnlyHint" style="margin-bottom:10px">Carga una longitud, agrega fotos si corresponde y guarda el tramo. El campo queda listo para seguir midiendo.</div><div class="field"><label>Longitud del tramo (m)</label><input id="aisLen" class="aisQuickLen" type="number" inputmode="decimal" step="0.01" value="0.00" onclick="this.select()"></div><div class="aisTwo"><div class="field"><label>Desde</label><input id="aisDesde" placeholder="Valvula XV-101"></div><div class="field"><label>Hasta</label><input id="aisHasta" placeholder="Codo C-12"></div></div><div class="field"><label>Observacion</label><textarea id="aisObs" placeholder="Solo si corresponde..."></textarea></div><div class="aisPhotoButtons"><button class="btn ghost" onclick="document.getElementById('aisPhotoCam').click()">Sacar foto</button><button class="btn ghost" onclick="document.getElementById('aisPhotoGal').click()">Galeria</button><span class="aisChip" id="aisPhotoCount">Fotos ${aisPendingPhotos.length}</span><input id="aisPhotoCam" type="file" accept="image/*" capture="environment" onchange="aisTakePhoto(event)"><input id="aisPhotoGal" type="file" accept="image/*" onchange="aisTakePhoto(event)"></div><div class="aisActions"><button class="aisActionBtn primary" onclick="aisAddTramo()">Guardar tramo</button><button class="aisActionBtn" onclick="aisOpenAccessory()">Agregar accesorio</button><button class="aisActionBtn" onclick="aisOpenEquipment()">Agregar equipo</button><button class="aisActionBtn" onclick="aisAddGeneralObs()">Observacion general</button></div></div>
+    <div class="aisGrid aisWorkGrid"><div class="aisCard"><h3>Carga rapida</h3><div class="readOnlyHint" style="margin-bottom:10px">Carga una longitud, agrega fotos si corresponde y guarda el tramo. El campo queda listo para seguir midiendo.</div><div class="field"><label>Longitud del tramo (m)</label><input id="aisLen" class="aisQuickLen" type="number" inputmode="decimal" step="0.01" value="0.00" onclick="this.select()"></div><div class="aisTwo"><div class="field"><label>Desde</label><input id="aisDesde" placeholder="Valvula XV-101"></div><div class="field"><label>Hasta</label><input id="aisHasta" placeholder="Codo C-12"></div></div><div class="field"><label>Observacion</label><textarea id="aisObs" placeholder="Solo si corresponde..."></textarea></div><div class="aisPhotoButtons"><button class="btn ghost" onclick="document.getElementById('aisPhotoCam').click()">Sacar foto</button><button class="btn ghost" onclick="document.getElementById('aisPhotoGal').click()">Galeria</button><span class="aisChip" id="aisPhotoCount">Fotos ${aisPendingPhotos.length}</span><input id="aisPhotoCam" type="file" accept="image/*" capture="environment" onchange="aisTakePhoto(event)"><input id="aisPhotoGal" type="file" accept="image/*" onchange="aisTakePhoto(event)"></div><div class="aisPhotoPreview" id="aisPhotoPreview"></div><div class="aisActions"><button class="aisActionBtn primary" onclick="aisAddTramo()">Guardar tramo</button><button class="aisActionBtn" onclick="aisOpenAccessory()">Agregar accesorio</button><button class="aisActionBtn" onclick="aisOpenEquipment()">Agregar equipo</button><button class="aisActionBtn" onclick="aisAddGeneralObs()">Observacion general</button></div></div>
     <div><div class="aisCard"><h3>Bitacora</h3><div class="aisLive">${aisLiveHTML(r)}</div></div><div class="aisCard"><h3>Acciones</h3><div class="actions"><button class="btn ok" onclick="aisWhatsApp()">WhatsApp</button><button class="btn ghost" onclick="aisShowHistory()">Historial</button><button class="btn danger" onclick="aisCancelCurrent()">Cancelar recorrido</button></div></div></div></div><div id="aisSheet" class="aisModalShade"><div class="aisModal" id="aisSheetBody"></div></div><div id="aisToast" class="aisToast"></div>`;
   };
 
   window.aisShowHistory=function(){
     try{aisLoad()}catch(e){}
+    aisSetNav('historial');
     const c=document.getElementById('aisContent');
     if(c)c.innerHTML=`<div class="aisTop"><div><h2>Historial de aislacion</h2><p>Relevamientos guardados, finalizados y pendientes de Drive.</p></div><div class="actions"><button class="btn ghost" onclick="renderAislacionPage()">Volver</button><button class="btn primary" onclick="aisStartForm()">+ Nuevo</button></div></div><div class="aisCard">${filterBar()}<div id="aisHistoryWrap">${aisHistoryCards((aisState&&aisState.history)||[])}</div></div>`;
   };
 
-  try{aisHistoryCards=window.aisHistoryCards;aisHomeHTML=window.aisHomeHTML;aisWorkspaceHTML=window.aisWorkspaceHTML;aisShowHistory=window.aisShowHistory;}catch(e){}
+  window.aisViewHist=function(id){
+    const r=aisState.history.find(x=>x.id===id);
+    if(!r)return;
+    const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,acc:0,fotos:0};
+    const thumb=aisThumb(r);
+    aisSheet(`<h3>Detalle - ${esc(r.linea||'Aislacion')}</h3>${thumb?`<div class="aisHistThumb" style="width:100%;height:180px;margin:8px 0 12px"><img src="${esc(thumb)}" alt="Foto ${esc(r.linea||'aislacion')}"></div>`:''}<p><b>${esc(typeText(r.tipo))}</b> &middot; ${esc(r.obra||'-')} &middot; ${esc(r.sector||'-')}</p><div class="aisStats"><div class="aisStat"><span>Metros totales</span><b>${fmtNum(s.metros||0)}</b></div><div class="aisStat"><span>m2 estimados</span><b>${fmtNum(s.m2||0)}</b></div><div class="aisStat"><span>Accesorios</span><b>${s.acc||0}</b></div><div class="aisStat"><span>Fotos</span><b>${s.fotos||0}</b></div></div><div class="aisLive">${aisLiveHTML(r)}</div><div class="actions" style="margin-top:12px"><button class="btn ghost" onclick="aisCloseSheet()">Cerrar</button><button class="btn ok" onclick="aisWhatsApp('${esc(id)}')">WhatsApp</button></div>`);
+  };
+
+  window.aisSetNav=function(view){
+    document.querySelectorAll('#aislacionPage .aisSide .nav button').forEach(btn=>btn.classList.remove('active'));
+    const map={
+      control:"Control de Aislación",
+      historial:"Historial",
+      informes:"Informes"
+    };
+    document.querySelectorAll('#aislacionPage .aisSide .nav button').forEach(btn=>{
+      if((btn.textContent||'').includes(map[view]||'')) btn.classList.add('active');
+    });
+  };
+
+  window.aisShowInforme=function(){
+    try{aisLoad()}catch(e){}
+    aisSetNav('informes');
+    const h=(aisState&&aisState.history)||[];
+    const rows=h.filter(matches);
+    const total=rows.reduce((acc,r)=>{
+      const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,tramos:0,acc:0,fotos:0};
+      acc.metros+=Number(s.metros||0);
+      acc.m2+=Number(s.m2||0);
+      acc.tramos+=Number(s.tramos||0);
+      acc.acc+=Number(s.acc||0);
+      acc.fotos+=Number(s.fotos||0);
+      if(r.estado==='Finalizado') acc.finalizados++;
+      if(syncState(r).cls!=='ok' && r.estado==='Finalizado') acc.pendientesDrive++;
+      acc.porObra[r.obra||'Sin obra']=(acc.porObra[r.obra||'Sin obra']||0)+Number(s.metros||0);
+      return acc;
+    },{metros:0,m2:0,tramos:0,acc:0,fotos:0,finalizados:0,pendientesDrive:0,porObra:{}});
+    const obraRows=Object.entries(total.porObra).sort((a,b)=>b[1]-a[1]).map(([obra,metros])=>`<tr><td>${esc(obra)}</td><td>${fmtNum(metros)} m</td></tr>`).join('');
+    const c=document.getElementById('aisContent');
+    if(c)c.innerHTML=`<div class="aisTop"><div><h2>Informes de aislacion</h2><p>Resumen operativo de relevamientos cargados en este dispositivo.</p></div><div class="actions"><button class="btn ghost" onclick="renderAislacionPage()">Volver</button><button class="btn ok" onclick="aisWhatsAppInforme()">WhatsApp</button></div></div>${filterBar()}<div class="aisStats aisOpsStats"><div class="aisStat"><span>Metros totales</span><b>${fmtNum(total.metros)} m</b></div><div class="aisStat"><span>m2 estimados</span><b>${fmtNum(total.m2)}</b></div><div class="aisStat"><span>Finalizados</span><b>${total.finalizados}</b></div><div class="aisStat"><span>Pendientes Drive</span><b>${total.pendientesDrive}</b></div></div><div class="aisGrid aisHomeGrid"><div class="aisCard"><h3>Por obra</h3><div class="tableWrap"><table><thead><tr><th>Obra</th><th>Metros</th></tr></thead><tbody>${obraRows||'<tr><td colspan="2">Sin datos</td></tr>'}</tbody></table></div></div><div class="aisCard"><h3>Ultimos relevamientos</h3>${rows.length?aisHistoryCards(rows.slice(0,5)):'<div class="empty">Sin relevamientos para informar.</div>'}</div></div>`;
+  };
+
+  window.aisWhatsAppInforme=function(){
+    try{aisLoad()}catch(e){}
+    const h=(aisState&&aisState.history)||[];
+    const total=h.reduce((acc,r)=>{const s=typeof aisSummary==='function'?aisSummary(r):{};acc.metros+=Number(s.metros||0);acc.fotos+=Number(s.fotos||0);acc.finalizados+=r.estado==='Finalizado'?1:0;return acc;},{metros:0,fotos:0,finalizados:0});
+    const msg=`Informe de Aislacion\n\nRelevamientos finalizados: ${total.finalizados}\nMetros totales: ${fmtNum(total.metros)} m\nFotos: ${total.fotos}`;
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  };
+
+  const baseRenderAislacionPage=window.renderAislacionPage;
+  window.renderAislacionPage=function(){
+    baseRenderAislacionPage();
+    aisSetNav('control');
+  };
+
+  try{aisHistoryCards=window.aisHistoryCards;aisHomeHTML=window.aisHomeHTML;aisWorkspaceHTML=window.aisWorkspaceHTML;aisShowHistory=window.aisShowHistory;aisViewHist=window.aisViewHist;aisShowInforme=window.aisShowInforme;renderAislacionPage=window.renderAislacionPage;}catch(e){}
 })();
 </script>
 
