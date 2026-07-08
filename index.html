@@ -3016,5 +3016,141 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<style>
+/* ===== INFORMES PAPEL v3.3.6 ===== */
+#view-informes .reportShell,
+#reportBody .reportShell,
+.aisReportPage .reportShell{background:#fff!important;color:#111827!important}
+#view-informes .reportTable th,
+#reportBody .reportTable th,
+.aisReportPage .reportTable th{background:#eaf2ff!important;color:#0b2f6b!important}
+#view-informes .reportTable td,
+#reportBody .reportTable td,
+.aisReportPage .reportTable td{background:#fff!important;color:#111827!important}
+#view-informes .execCard,
+#reportBody .execCard,
+.aisReportPage .execCard{background:#fff!important;color:#111827!important}
+</style>
+
+<script>
+/* ===== IMPRESION AISLADA INFORMES v3.3.6 ===== */
+(function(){
+  'use strict';
+  function hasContent(el){
+    return !!(el&&el.innerHTML&&el.innerHTML.trim()&&el.querySelector('.reportShell'));
+  }
+  function collectCurrentReport(){
+    const modal=document.getElementById('reportModal');
+    const body=document.getElementById('reportBody');
+    if(modal&&modal.classList.contains('show')&&hasContent(body))return body.innerHTML;
+    const ais=document.querySelector('.aisReportPage .reportShell');
+    if(ais)return ais.outerHTML;
+    const andView=document.getElementById('view-informes');
+    if(andView&&!andView.classList.contains('hidden')){
+      const shell=andView.querySelector('.reportShell');
+      if(shell)return shell.outerHTML;
+    }
+    if(hasContent(body))return body.innerHTML;
+    const any=document.querySelector('.reportShell');
+    return any?any.outerHTML:'';
+  }
+  function css(){
+    return `
+      @page{size:A4 portrait;margin:9mm}
+      *{box-sizing:border-box}
+      html,body{margin:0!important;padding:0!important;background:#fff!important;color:#111827!important;font-family:Arial,Helvetica,sans-serif!important}
+      body{width:192mm;max-width:192mm;overflow:visible!important}
+      .reportShell,.aisReportShell{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;background:#fff!important;color:#111827!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important;break-after:auto!important;page-break-after:auto!important}
+      .reportShell.page2{break-before:page!important;page-break-before:always!important;margin-top:0!important}
+      .mobileOnlyNotice,.reportPreviewActions,.modalHead,.modalFoot,.btn,.actions{display:none!important}
+      .reportHeader{display:grid!important;grid-template-columns:31mm 1fr 58mm!important;border:1px solid #94a3b8!important;border-radius:0!important;overflow:hidden!important;margin:0 0 5mm!important;background:#fff!important;break-inside:avoid!important;page-break-inside:avoid!important}
+      .reportLogo{display:grid!important;place-items:center!important;border-right:1px solid #94a3b8!important;padding:3mm!important;background:#fff!important}
+      .logoMark,.alBig{width:23mm!important;height:16mm!important;border:2px solid #0b5fa5!important;border-radius:2mm!important;color:#0b5fa5!important;background:#fff!important;display:grid!important;place-items:center!important;font-weight:900!important;font-size:18pt!important;letter-spacing:0!important}
+      .alBig:after{display:none!important}
+      .reportName{padding:4mm!important;background:#fff!important}
+      .reportName h2{margin:0!important;color:#0b2f6b!important;font-size:17pt!important;line-height:1.05!important;letter-spacing:0!important}
+      .reportName b{display:block!important;margin-top:2mm!important;color:#111827!important;font-size:8.5pt!important}
+      .reportMeta{border-left:1px solid #94a3b8!important;padding:3mm!important;font-size:7.5pt!important;line-height:1.35!important;color:#111827!important;background:#fff!important;display:block!important}
+      .reportMeta div{display:grid!important;grid-template-columns:24mm 1fr!important;gap:2mm!important;margin-bottom:1mm!important}
+      .reportMeta b{color:#111827!important}
+      h4,.reportSectionTitle{margin:5mm 0 2mm!important;color:#0b2f6b!important;border-bottom:1px solid #94a3b8!important;padding-bottom:1.2mm!important;font-size:10pt!important;text-transform:uppercase!important;display:block!important}
+      .reportSectionTitle:after{display:none!important}
+      .execGrid{display:grid!important;grid-template-columns:repeat(6,1fr)!important;gap:2mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
+      .execCard{border:1px solid #cbd5e1!important;border-radius:2mm!important;min-height:20mm!important;text-align:center!important;padding:2mm!important;background:#fff!important;color:#111827!important;box-shadow:none!important;display:grid!important;place-items:center!important}
+      .execIcon{font-size:7pt!important;font-weight:900!important;color:#0b2f6b!important;line-height:1!important}
+      .execCard b,.execCard strong{display:block!important;color:#0b2f6b!important;font-size:13pt!important;line-height:1.05!important}
+      .execCard small,.execCard em,.execCard span{display:block!important;color:#475569!important;font-size:6.2pt!important;font-style:normal!important;text-transform:uppercase!important}
+      .reportTwoCols,.functionalGrid,.chartGrid{display:grid!important;grid-template-columns:1fr 1.45fr!important;gap:4mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
+      .reportPanel,.functionalPanel,.pendBox,.barChart,.lineChart,.obsBox{border:1px solid #cbd5e1!important;border-radius:2mm!important;padding:3mm!important;background:#fff!important;color:#111827!important;box-shadow:none!important}
+      .statusMiniGrid,.statusCountGrid{display:grid!important;grid-template-columns:repeat(2,1fr)!important;gap:2mm!important}
+      .statusMiniGrid div,.statusCount{border:1px solid #e2e8f0!important;border-radius:1.5mm!important;padding:2mm!important;background:#fff!important}
+      .statusMiniGrid b,.statusCount b{display:block!important;color:#0b2f6b!important;font-size:13pt!important}
+      .statusMiniGrid small,.statusCount span{font-size:6pt!important;color:#475569!important;text-transform:uppercase!important}
+      .tableWrap{overflow:visible!important;border:0!important;background:#fff!important}
+      table,.reportTable{width:100%!important;min-width:0!important;border-collapse:collapse!important;background:#fff!important;color:#111827!important;font-size:7pt!important}
+      th,.reportTable th{background:#eaf2ff!important;color:#0b2f6b!important;border:1px solid #94a3b8!important;padding:1.4mm!important;text-align:left!important;font-size:6.4pt!important}
+      td,.reportTable td{background:#fff!important;color:#111827!important;border:1px solid #cbd5e1!important;padding:1.25mm!important;font-size:6.7pt!important}
+      .statusPill,.badge{color:#111827!important;background:#fff!important;border:1px solid #94a3b8!important}
+      .aisReportPhotos{display:flex!important;gap:2mm!important;flex-wrap:wrap!important}
+      .aisReportPhotos img{width:18mm!important;height:18mm!important;object-fit:cover!important;border:1px solid #cbd5e1!important;border-radius:1mm!important}
+      a{color:#0b2f6b!important;text-decoration:none!important}
+    `;
+  }
+  window.printReport=function(){
+    const html=collectCurrentReport();
+    if(!html){
+      if(typeof toast==='function')toast('No hay informe para imprimir');
+      return;
+    }
+    const old=document.getElementById('__alReportPrintFrame');
+    if(old)old.remove();
+    const frame=document.createElement('iframe');
+    frame.id='__alReportPrintFrame';
+    frame.setAttribute('title','Impresion informe');
+    frame.style.position='fixed';
+    frame.style.left='-10000px';
+    frame.style.top='0';
+    frame.style.width='210mm';
+    frame.style.height='297mm';
+    frame.style.border='0';
+    frame.style.background='#fff';
+    document.body.appendChild(frame);
+    const doc=frame.contentDocument||frame.contentWindow.document;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Informe AL</title><style>${css()}</style></head><body>${html}</body></html>`);
+    doc.close();
+    const cleanup=()=>setTimeout(()=>{try{frame.remove()}catch(e){}},800);
+    setTimeout(()=>{
+      try{
+        frame.contentWindow.focus();
+        frame.contentWindow.onafterprint=cleanup;
+        frame.contentWindow.print();
+        setTimeout(cleanup,3500);
+      }catch(e){
+        cleanup();
+        window.print();
+      }
+    },350);
+  };
+  const currentFinish=window.finishReportGeneration;
+  if(currentFinish){
+    window.finishReportGeneration=function(){
+      currentFinish.apply(this,arguments);
+      const foot=document.getElementById('reportFoot');
+      if(foot)foot.innerHTML=`<button class="btn ghost" onclick="closeModal('reportModal')">Cerrar</button><button class="btn ghost" onclick="shareInformeWhatsApp()">WhatsApp</button><button class="btn primary" onclick="printReport()">Imprimir / Guardar PDF</button>`;
+    };
+  }
+  const currentAisStart=window.startAisReportGeneration;
+  if(currentAisStart){
+    window.startAisReportGeneration=function(){
+      currentAisStart.apply(this,arguments);
+      const foot=document.getElementById('reportFoot');
+      if(foot)foot.innerHTML=`<button class="btn ghost" onclick="closeModal('reportModal')">Cerrar</button><button class="btn ghost" onclick="shareAisInformeWhatsApp()">WhatsApp</button><button class="btn primary" onclick="printReport()">Imprimir / Guardar PDF</button>`;
+    };
+  }
+  try{printReport=window.printReport;finishReportGeneration=window.finishReportGeneration;startAisReportGeneration=window.startAisReportGeneration;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
