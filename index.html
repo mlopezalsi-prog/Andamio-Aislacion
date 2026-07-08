@@ -1665,5 +1665,482 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<style>
+/* ===== ANDAMIOS LISTA OPERATIVA v3.2.0 ===== */
+.andamioGrid.andamioListView{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:10px!important;
+}
+.andamioGrid.andamioListView .andamioCard{
+  display:grid!important;
+  grid-template-columns:88px minmax(0,1fr) minmax(170px,230px)!important;
+  align-items:stretch!important;
+  min-height:96px!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+  background:#111827!important;
+}
+.andamioGrid.andamioListView .andamioPhoto{
+  width:88px!important;
+  min-height:96px!important;
+  height:100%!important;
+  font-size:24px!important;
+  background:#182231!important;
+}
+.andamioListBody{
+  display:grid;
+  grid-template-columns:1.05fr 1fr 1fr;
+  gap:12px;
+  align-items:center;
+  padding:12px 14px;
+  min-width:0;
+}
+.andamioListField{
+  min-width:0;
+}
+.andamioListField small{
+  display:block;
+  margin-bottom:4px;
+  color:#8ea0b8!important;
+  font-size:10px;
+  font-weight:950;
+  text-transform:uppercase;
+}
+.andamioListField b{
+  display:block;
+  color:#f8fafc;
+  font-size:15px;
+  font-weight:950;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.andamioListField span{
+  display:block;
+  margin-top:3px;
+  color:#a8b3c5;
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.andamioListState{
+  display:grid;
+  align-content:center;
+  gap:8px;
+  padding:12px 14px;
+  border-left:1px solid rgba(148,163,184,.24);
+  background:rgba(15,23,42,.32);
+}
+.andamioStateRow{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.andamioValidity{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:6px 9px;
+  font-size:11px;
+  font-weight:950;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.andamioValidity.vigente{background:#dcfce7;color:#166534;border-color:#86efac}
+.andamioValidity.proximo{background:#ffedd5;color:#9a3412;border-color:#fdba74}
+.andamioValidity.vencido{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.andamioValidity.sin-vigencia{background:#e5e7eb;color:#374151;border-color:#cbd5e1}
+.andamioListActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.andamioListActions .btn{
+  padding:8px 10px!important;
+  min-height:34px;
+}
+@media(max-width:900px){
+  .andamioGrid.andamioListView .andamioCard{
+    grid-template-columns:74px minmax(0,1fr)!important;
+  }
+  .andamioGrid.andamioListView .andamioPhoto{
+    width:74px!important;
+    min-height:132px!important;
+  }
+  .andamioListBody{
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+    padding:10px 12px 8px!important;
+  }
+  .andamioListState{
+    grid-column:1/-1;
+    border-left:0;
+    border-top:1px solid rgba(148,163,184,.24);
+    padding:8px 12px 10px!important;
+  }
+  .andamioStateRow,.andamioListActions{
+    justify-content:flex-start;
+  }
+}
+</style>
+
+<script>
+/* ===== ANDAMIOS LISTA OPERATIVA v3.2.0 ===== */
+(function(){
+  'use strict';
+  function escList(v){
+    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function validezAndamio(a){
+    const s=status(a);
+    if(a.estado==='Desarmado') return {txt:'Sin vigencia',cls:'sin-vigencia'};
+    if(s.txt==='Vencido') return {txt:'Vencido',cls:'vencido'};
+    if(s.txt==='Próximo') return {txt:'Próximo a vencer',cls:'proximo'};
+    return {txt:'Vigente',cls:'vigente'};
+  }
+  window.andamioCard=function(a){
+    const os=operativeStatus(a);
+    const vig=validezAndamio(a);
+    const med=`${a.largo||0} x ${a.ancho||0} x ${a.alto||0} m`;
+    const img=typeof driveImageUrl==='function'?driveImageUrl(a):(a.foto||'');
+    const subtitle=[a.obra,a.descripcion].filter(Boolean).join(' - ');
+    return `<article class="andamioCard" onclick="openDetail('${a.id}')">
+      <div class="andamioPhoto">${img?`<img src="${img}" alt="Foto ${escList(a.precinto)}">`:'CAM'}</div>
+      <div class="andamioListBody">
+        <div class="andamioListField"><small>Precinto</small><b>${escList(a.precinto||'-')}</b><span>${escList(subtitle||'Sin descripción')}</span></div>
+        <div class="andamioListField"><small>Sector</small><b>${escList(a.sector||'-')}</b><span>${escList(a.obra||'-')}</span></div>
+        <div class="andamioListField"><small>Medidas</small><b>${escList(med)}</b><span>${escList(m3(a))} m³</span></div>
+      </div>
+      <div class="andamioListState">
+        <div class="andamioStateRow"><span class="statusBadge ${os.cls}">${escList(os.txt)}</span><span class="andamioValidity ${vig.cls}">${escList(vig.txt)}</span></div>
+        <div class="andamioListActions"><button class="btn ghost" onclick="event.stopPropagation();openDetail('${a.id}')">Ver detalle</button><button class="btn primary" onclick="event.stopPropagation();openAndamio('${a.id}')">Modificar</button></div>
+      </div>
+    </article>`;
+  };
+  try{andamioCard=window.andamioCard}catch(e){}
+  function markListViews(){
+    document.querySelectorAll('.andamioGrid').forEach(el=>el.classList.add('andamioListView'));
+  }
+  const oldRenderAndamios=window.renderAndamios;
+  if(typeof oldRenderAndamios==='function'){
+    window.renderAndamios=function(){oldRenderAndamios();markListViews();};
+    try{renderAndamios=window.renderAndamios}catch(e){}
+  }
+  const oldRenderDashboard=window.renderDashboard;
+  if(typeof oldRenderDashboard==='function'){
+    window.renderDashboard=function(){oldRenderDashboard();markListViews();};
+    try{renderDashboard=window.renderDashboard}catch(e){}
+  }
+  setTimeout(markListViews,80);
+})();
+</script>
+
+<script>
+/* ===== REGLA DE VIGENCIA Y FILTROS v3.2.1 ===== */
+(function(){
+  'use strict';
+  const VIGENCIA_DIAS=30;
+  const ALERTA_DIAS=10;
+
+  function diasDesdeArmado(a){
+    const base=a?.fechaMontaje?new Date(a.fechaMontaje+'T00:00:00'):(a?.fecha?new Date(a.fecha+'T00:00:00'):new Date(a?.createdAt||new Date()));
+    const diff=Math.floor((new Date()-base)/86400000);
+    return Number.isFinite(diff)?Math.max(0,diff):0;
+  }
+
+  window.status=function(a){
+    if(a?.estado==='Desarmado') return {txt:'Desarmado',cls:'bad',days:0};
+    const days=diasDesdeArmado(a);
+    if(days>=VIGENCIA_DIAS) return {txt:'Vencido',cls:'bad',days};
+    if(days>=VIGENCIA_DIAS-ALERTA_DIAS) return {txt:'Próximo',cls:'warn',days};
+    return {txt:a?.estado==='Modificado'?'Modificado':a?.estado==='Pendiente revisión'?'Pendiente revisión':'Activo',cls:a?.estado==='Modificado'?'blue':a?.estado==='Pendiente revisión'?'warn':'ok',days};
+  };
+  try{status=window.status}catch(e){}
+
+  window.operativeStatus=function(a){
+    const s=status(a);
+    if(a?.estado==='Desarmado') return {txt:'Desarmado',cls:'desarmado'};
+    if(s.txt==='Vencido') return {txt:'Vencido',cls:'vencido'};
+    if(a?.estado==='Modificado') return {txt:'Armado con modificaciones',cls:'modificado'};
+    if(a?.estado==='Pendiente revisión') return {txt:'Pendiente revisión',cls:'pendiente'};
+    if(s.txt==='Próximo') return {txt:'Próximo',cls:'proximo'};
+    return {txt:'Armado',cls:'armado'};
+  };
+  try{operativeStatus=window.operativeStatus}catch(e){}
+
+  if(window.db&&db.config){
+    db.config.vigencia=VIGENCIA_DIAS;
+    db.config.alerta=ALERTA_DIAS;
+    try{persist()}catch(e){}
+  }
+
+  window.renderAndamios=function(){
+    let list=visibleAndamios();
+    if(filters.q) list=filterByText(list,filters.q);
+    if(filters.obra) list=list.filter(a=>a.obra===filters.obra);
+    if(filters.estado==='proximo') list=list.filter(a=>status(a).txt==='Próximo');
+    else if(filters.estado==='vencido') list=list.filter(a=>status(a).txt==='Vencido');
+    else if(filters.estado==='vigente') list=list.filter(a=>a.estado!=='Desarmado'&&!['Próximo','Vencido'].includes(status(a).txt));
+    else if(filters.estado==='doc') list=list.filter(a=>docWarns(a).length);
+
+    document.getElementById('view-andamios').innerHTML=header('Andamios','Vigencia calculada desde la fecha de montaje: 30 días; alerta desde 10 días antes.',`<button class="btn primary" onclick="openAndamio()">+ Nueva carga</button>`)+`<div class="card"><div class="filters"><input placeholder="Buscar precinto, sector, obra o descripción..." value="${filters.q}" oninput="filters.q=this.value;renderAndamios()"><select onchange="filters.obra=this.value;renderAndamios()"><option value="">Todas las obras</option>${userObras().map(o=>`<option ${filters.obra===o?'selected':''}>${o}</option>`).join('')}</select><select onchange="filters.estado=this.value;renderAndamios()"><option value="">Todos</option><option value="proximo" ${filters.estado==='proximo'?'selected':''}>Próximos a vencer</option><option value="vencido" ${filters.estado==='vencido'?'selected':''}>Vencidos</option><option value="vigente" ${filters.estado==='vigente'?'selected':''}>Vigentes</option><option value="doc" ${filters.estado==='doc'?'selected':''}>Pendientes documentación</option></select></div><div class="andamioGrid andamioListView">${list.map(andamioCard).join('')||'<div class="empty">No hay registros</div>'}</div></div>`;
+  };
+  try{renderAndamios=window.renderAndamios}catch(e){}
+})();
+</script>
+
+<style>
+/* ===== AISLACION OPERATIVA v3.3.0 ===== */
+.aisOpsStats{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  margin-bottom:14px;
+}
+.aisHomeGrid{
+  grid-template-columns:minmax(320px,.95fr) minmax(360px,1.35fr)!important;
+  align-items:start;
+}
+.aisSetupPanel .readOnlyHint{margin:12px 0}
+.aisSetupPanel .btn.primary{min-height:50px}
+.aisFilterBar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 150px 170px;
+  gap:8px;
+  margin:10px 0 12px;
+}
+.aisFilterBar input,.aisFilterBar select{
+  min-width:0;
+  border:1px solid rgba(148,163,184,.28);
+  border-radius:10px;
+  padding:10px 12px;
+  background:rgba(15,23,42,.72);
+  color:inherit;
+}
+.aisHistoryList.polished{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+.aisHistCard.polished{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) auto;
+  gap:12px;
+  padding:12px;
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:12px;
+  background:rgba(15,23,42,.58);
+}
+.aisHistTitle{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  min-width:0;
+}
+.aisHistTitle h3{
+  margin:0;
+  font-size:15px;
+  line-height:1.2;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.aisTypeDot{
+  width:10px;
+  height:10px;
+  flex:0 0 10px;
+  border-radius:50%;
+  background:#22c55e;
+}
+.aisTypeDot.desmontaje{background:#f97316}
+.aisTypeDot.reparacion{background:#3b82f6}
+.aisHistMeta{
+  margin:5px 0 9px;
+  color:#94a3b8;
+  font-size:12px;
+  line-height:1.45;
+}
+.aisHistMetrics{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.aisHistSide{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:10px;
+}
+.aisSyncBadge{
+  border-radius:999px;
+  padding:6px 9px;
+  font-weight:800;
+  font-size:11px;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.aisSyncBadge.ok{background:rgba(34,197,94,.16);color:#86efac;border-color:rgba(34,197,94,.3)}
+.aisSyncBadge.warn{background:rgba(245,158,11,.16);color:#fcd34d;border-color:rgba(245,158,11,.32)}
+.aisSyncBadge.bad{background:rgba(239,68,68,.15);color:#fca5a5;border-color:rgba(239,68,68,.32)}
+.aisSyncBadge.blue{background:rgba(59,130,246,.15);color:#93c5fd;border-color:rgba(59,130,246,.32)}
+.aisHistActions{
+  display:flex;
+  gap:6px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.aisHistActions .btn{
+  min-height:34px;
+  padding:8px 10px;
+  font-size:12px;
+}
+.aisWorkTop .aisBadge{white-space:nowrap}
+.aisWorkGrid{
+  grid-template-columns:minmax(360px,1.08fr) minmax(320px,.92fr)!important;
+  align-items:start;
+}
+.aisCurrentMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+.aisCurrentMeta .aisChip{background:rgba(148,163,184,.12)}
+@media(max-width:860px){
+  .aisOpsStats,.aisHomeGrid,.aisWorkGrid,.aisFilterBar{
+    grid-template-columns:1fr!important;
+  }
+  .aisHistCard.polished{
+    grid-template-columns:1fr;
+  }
+  .aisHistSide{
+    align-items:flex-start;
+  }
+  .aisHistActions{
+    justify-content:flex-start;
+  }
+}
+</style>
+
+<script>
+/* ===== AISLACION OPERATIVA v3.3.0 ===== */
+(function(){
+  'use strict';
+  window.aisFilters=window.aisFilters||{q:'',tipo:'',sync:''};
+
+  function esc(v){
+    return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function safeDate(v){
+    const d=v?new Date(v):null;
+    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('es-AR') : '-';
+  }
+
+  function typeText(tipo){
+    return typeof aisTaskLabel==='function' ? aisTaskLabel(tipo) : (tipo||'Montaje');
+  }
+
+  function syncState(r){
+    if(r?.syncStatus==='Sincronizado') return {txt:'Sincronizado',cls:'ok'};
+    if(r?.syncStatus==='Enviando') return {txt:'Enviando',cls:'blue'};
+    if(r?.syncStatus==='Pendiente de reintento') return {txt:'Pendiente Drive',cls:'bad'};
+    if(r?.drivePendiente || r?.syncStatus==='Pendiente') return {txt:'Pendiente Drive',cls:'warn'};
+    if(r?.estado==='Finalizado') return {txt:'Pendiente Drive',cls:'warn'};
+    return {txt:'En proceso',cls:'blue'};
+  }
+
+  function photoCount(r){
+    try{return (typeof aisSummary==='function'?aisSummary(r).fotos:0)||0}catch(e){return 0}
+  }
+
+  function matches(r){
+    const f=window.aisFilters||{};
+    const q=(f.q||'').trim().toLowerCase();
+    const text=[r.linea,r.obra,r.sector,r.isometrico,r.diametro,r.material,r.estado,r.syncStatus].join(' ').toLowerCase();
+    if(q && !text.includes(q)) return false;
+    if(f.tipo && r.tipo!==f.tipo) return false;
+    if(f.sync==='pendiente' && syncState(r).cls==='ok') return false;
+    if(f.sync==='ok' && syncState(r).cls!=='ok') return false;
+    if(f.sync==='proceso' && r.estado==='Finalizado') return false;
+    return true;
+  }
+
+  function filterBar(){
+    const f=window.aisFilters||{};
+    return `<div class="aisFilterBar"><input placeholder="Buscar linea, sector, obra o isometrico..." value="${esc(f.q||'')}" oninput="aisSetFilter('q',this.value)"><select onchange="aisSetFilter('tipo',this.value)"><option value="">Todos los trabajos</option><option value="montaje" ${f.tipo==='montaje'?'selected':''}>Montaje</option><option value="desmontaje" ${f.tipo==='desmontaje'?'selected':''}>Desmontaje</option><option value="reparacion" ${f.tipo==='reparacion'?'selected':''}>Reparacion</option></select><select onchange="aisSetFilter('sync',this.value)"><option value="">Todos los estados</option><option value="pendiente" ${f.sync==='pendiente'?'selected':''}>Pendientes Drive</option><option value="ok" ${f.sync==='ok'?'selected':''}>Sincronizados</option><option value="proceso" ${f.sync==='proceso'?'selected':''}>En proceso</option></select></div>`;
+  }
+
+  window.aisSetFilter=function(k,v){
+    window.aisFilters=window.aisFilters||{q:'',tipo:'',sync:''};
+    window.aisFilters[k]=v;
+    const wrap=document.getElementById('aisHistoryWrap');
+    if(wrap){
+      try{aisLoad()}catch(e){}
+      wrap.innerHTML=aisHistoryCards((aisState&&aisState.history)||[]);
+    }
+  };
+
+  window.aisHistoryCards=function(list){
+    const rows=(list||[]).filter(matches);
+    if(!rows.length) return `<div class="empty">No hay relevamientos para esos filtros.</div>`;
+    return `<div class="aisHistoryList polished">${rows.map(r=>{
+      const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,tramos:0,acc:0,fotos:0};
+      const st=syncState(r);
+      const canRetry=r.estado==='Finalizado' && st.cls!=='ok';
+      return `<div class="aisHistCard polished">
+        <div class="aisHistMain">
+          <div class="aisHistTitle"><span class="aisTypeDot ${esc(r.tipo||'montaje')}"></span><h3>${esc(r.linea||'Sin linea')}</h3></div>
+          <div class="aisHistMeta">${esc(typeText(r.tipo))} &middot; ${esc(r.obra||'-')} &middot; ${esc(r.sector||'-')}<br>Fecha: ${safeDate(r.fecha)}${r.isometrico?' &middot; ISO: '+esc(r.isometrico):''}</div>
+          <div class="aisHistMetrics"><span class="aisChip">${fmtNum(s.metros||0)} m</span><span class="aisChip">${fmtNum(s.m2||0)} m2</span><span class="aisChip">${s.tramos||0} tramos</span><span class="aisChip">${s.acc||0} acc.</span><span class="aisChip">${s.fotos||0} fotos</span></div>
+        </div>
+        <div class="aisHistSide">
+          <span class="aisSyncBadge ${st.cls}">${esc(st.txt)}</span>
+          <div class="aisHistActions"><button class="btn ghost" onclick="aisViewHist('${esc(r.id)}')">Ver</button><button class="btn primary" onclick="aisContinue('${esc(r.id)}')">${r.estado==='Finalizado'?'Editar':'Continuar'}</button><button class="btn ok" onclick="aisWhatsApp('${esc(r.id)}')">WhatsApp</button>${canRetry?`<button class="btn ghost" onclick="aisRetrySync('${esc(r.id)}')">Reintentar Drive</button>`:''}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  };
+
+  window.aisHomeHTML=function(){
+    const h=(aisState&&aisState.history)||[];
+    const active=aisState&&aisState.current?1:0;
+    const done=h.filter(r=>r.estado==='Finalizado').length;
+    const pending=h.filter(r=>r.estado==='Finalizado'&&syncState(r).cls!=='ok').length;
+    const photos=h.reduce((a,r)=>a+photoCount(r),0)+photoCount(aisState&&aisState.current);
+    const diametros=['2&quot;','3&quot;','4&quot;','6&quot;','8&quot;','10&quot;','12&quot;','14&quot;','16&quot;','18&quot;','20&quot;','24&quot;'];
+    const obras=((db&&db.obras)||[]).filter(o=>o.activa).map(o=>`<option>${esc(o.nombre)}</option>`).join('');
+    return `<div class="aisTop"><div><h2>Control de Aislacion</h2><p>Relevamientos por linea/equipo, fotos y cierre con legajo en Drive.</p></div><div class="actions"><button class="btn ghost" onclick="backToPlatforms()">Plataformas</button><button class="btn primary" onclick="aisStartForm()">+ Nuevo relevamiento</button></div></div>
+    <div class="aisStats aisOpsStats"><div class="aisStat"><span>En curso</span><b>${active}</b></div><div class="aisStat"><span>Finalizados</span><b>${done}</b></div><div class="aisStat"><span>Pendientes Drive</span><b>${pending}</b></div><div class="aisStat"><span>Fotos</span><b>${photos}</b></div></div>
+    <div class="aisGrid aisHomeGrid"><div class="aisCard aisSetupPanel"><h3>Nuevo relevamiento</h3><div class="aisTaskCards"><div class="aisTask active" id="task-montaje" onclick="aisSelectTask('montaje')">Montaje<br><small>Aislacion instalada</small></div><div class="aisTask des" id="task-desmontaje" onclick="aisSelectTask('desmontaje')">Desmontaje<br><small>Aislacion retirada</small></div><div class="aisTask rep" id="task-reparacion" onclick="aisSelectTask('reparacion')">Reparacion<br><small>Intervencion parcial</small></div></div><input type="hidden" id="aisTask" value="montaje"><div class="modalGrid"><div class="field"><label>Obra</label><select id="aisObra">${obras}</select></div><div class="field"><label>Sector</label><input id="aisSector" value="Molienda"></div><div class="field"><label>Linea / Equipo</label><input id="aisLinea" value="LT-101"></div><div class="field"><label>Nro. de isometrico</label><input id="aisIso" placeholder="Ej: ISO-101"></div><div class="field"><label>Diametro de caneria</label><select id="aisDiametro">${diametros.map(d=>`<option>${d}</option>`).join('')}</select></div><div class="field"><label>Material</label><input id="aisMaterial" value="Lana mineral"></div><div class="field"><label>Espesor de aislacion</label><input id="aisEspesor" value="50 mm"></div><div class="field"><label>Capas</label><input id="aisCapas" type="number" value="2"></div><div class="field"><label>Tipo de chapa</label><select id="aisChapa"><option>Sin chapa</option><option selected>Aluminio</option><option>Galvanizado</option><option>Inoxidable</option><option>Otra</option></select></div></div><div class="readOnlyHint">Primero se identifica el trabajo. Despues se cargan tramos, accesorios, equipos, fotos y se finaliza para enviar a Drive.</div><button class="btn primary" style="width:100%;padding:16px" onclick="aisStart()">Comenzar recorrido</button></div>
+    <div class="aisCard"><h3>Historial operativo</h3>${filterBar()}<div id="aisHistoryWrap">${h.length?aisHistoryCards(h):'<div class="empty">Todavia no hay relevamientos guardados.</div>'}</div></div></div>`;
+  };
+
+  window.aisWorkspaceHTML=function(){
+    const r=aisState.current;
+    const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,tramos:0,acc:0,fotos:0};
+    const verb=typeof aisVerb==='function'?aisVerb(r.tipo):'registrados';
+    const st=syncState(r);
+    return `<div class="aisTop aisWorkTop"><div><h2>${esc(r.linea||'Aislacion')}</h2><p>${esc(typeText(r.tipo))} &middot; ${esc(r.obra||'-')} &middot; ${esc(r.sector||'-')}</p><div class="aisCurrentMeta"><span class="aisChip">Diametro: ${esc(r.diametro||'-')}</span><span class="aisChip">Material: ${esc(r.material||'-')}</span><span class="aisChip">Espesor: ${esc(r.espesor||'-')}</span>${r.isometrico?`<span class="aisChip">ISO: ${esc(r.isometrico)}</span>`:''}</div></div><div class="actions"><span class="aisSyncBadge ${st.cls}">${esc(st.txt)}</span><button class="btn ghost" onclick="aisSaveProgress()">Guardar avance</button><button class="btn primary" onclick="aisFinish()">Finalizar y enviar</button></div></div>
+    <div class="aisStats"><div class="aisStat"><span>Metros ${esc(verb)}</span><b>${fmtNum(s.metros||0)} m</b></div><div class="aisStat"><span>m2 estimados</span><b>${fmtNum(s.m2||0)}</b></div><div class="aisStat"><span>Tramos / acc.</span><b>${s.tramos||0} / ${s.acc||0}</b></div><div class="aisStat"><span>Fotos</span><b>${s.fotos||0}</b></div></div>
+    <div class="aisGrid aisWorkGrid"><div class="aisCard"><h3>Carga rapida</h3><div class="readOnlyHint" style="margin-bottom:10px">Carga una longitud, agrega fotos si corresponde y guarda el tramo. El campo queda listo para seguir midiendo.</div><div class="field"><label>Longitud del tramo (m)</label><input id="aisLen" class="aisQuickLen" type="number" inputmode="decimal" step="0.01" value="0.00" onclick="this.select()"></div><div class="aisTwo"><div class="field"><label>Desde</label><input id="aisDesde" placeholder="Valvula XV-101"></div><div class="field"><label>Hasta</label><input id="aisHasta" placeholder="Codo C-12"></div></div><div class="field"><label>Observacion</label><textarea id="aisObs" placeholder="Solo si corresponde..."></textarea></div><div class="aisPhotoButtons"><button class="btn ghost" onclick="document.getElementById('aisPhotoCam').click()">Sacar foto</button><button class="btn ghost" onclick="document.getElementById('aisPhotoGal').click()">Galeria</button><span class="aisChip" id="aisPhotoCount">Fotos ${aisPendingPhotos.length}</span><input id="aisPhotoCam" type="file" accept="image/*" capture="environment" onchange="aisTakePhoto(event)"><input id="aisPhotoGal" type="file" accept="image/*" onchange="aisTakePhoto(event)"></div><div class="aisActions"><button class="aisActionBtn primary" onclick="aisAddTramo()">Guardar tramo</button><button class="aisActionBtn" onclick="aisOpenAccessory()">Agregar accesorio</button><button class="aisActionBtn" onclick="aisOpenEquipment()">Agregar equipo</button><button class="aisActionBtn" onclick="aisAddGeneralObs()">Observacion general</button></div></div>
+    <div><div class="aisCard"><h3>Bitacora</h3><div class="aisLive">${aisLiveHTML(r)}</div></div><div class="aisCard"><h3>Acciones</h3><div class="actions"><button class="btn ok" onclick="aisWhatsApp()">WhatsApp</button><button class="btn ghost" onclick="aisShowHistory()">Historial</button><button class="btn danger" onclick="aisCancelCurrent()">Cancelar recorrido</button></div></div></div></div><div id="aisSheet" class="aisModalShade"><div class="aisModal" id="aisSheetBody"></div></div><div id="aisToast" class="aisToast"></div>`;
+  };
+
+  window.aisShowHistory=function(){
+    try{aisLoad()}catch(e){}
+    const c=document.getElementById('aisContent');
+    if(c)c.innerHTML=`<div class="aisTop"><div><h2>Historial de aislacion</h2><p>Relevamientos guardados, finalizados y pendientes de Drive.</p></div><div class="actions"><button class="btn ghost" onclick="renderAislacionPage()">Volver</button><button class="btn primary" onclick="aisStartForm()">+ Nuevo</button></div></div><div class="aisCard">${filterBar()}<div id="aisHistoryWrap">${aisHistoryCards((aisState&&aisState.history)||[])}</div></div>`;
+  };
+
+  try{aisHistoryCards=window.aisHistoryCards;aisHomeHTML=window.aisHomeHTML;aisWorkspaceHTML=window.aisWorkspaceHTML;aisShowHistory=window.aisShowHistory;}catch(e){}
+})();
+</script>
+
 </body>
 </html>
