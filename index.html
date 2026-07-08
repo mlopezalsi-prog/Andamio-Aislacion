@@ -2385,15 +2385,32 @@ viewFO46 = function(andId,foId,print=false){
       input.name='payload';input.value=JSON.stringify({action,...payload});
       form.appendChild(input);document.body.appendChild(iframe);document.body.appendChild(form);
       form.submit();
-      setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){}resolve({ok:true})},1800);
+      const wait=action==='uploadAislacionFile'?4200:2200;
+      setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){}resolve({ok:true})},wait);
     });
   }
   function fileToDataUrl(file){
     return new Promise((resolve,reject)=>{
       const reader=new FileReader();
-      reader.onload=()=>resolve(reader.result);
+      reader.onload=()=>compressImageDataUrl(reader.result).then(resolve).catch(()=>resolve(reader.result));
       reader.onerror=()=>reject(reader.error||new Error('No se pudo leer la foto'));
       reader.readAsDataURL(file);
+    });
+  }
+  function compressImageDataUrl(dataUrl){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=1280;
+        const scale=Math.min(1,max/Math.max(img.width,img.height));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(img.width*scale));
+        canvas.height=Math.max(1,Math.round(img.height*scale));
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL('image/jpeg',0.78));
+      };
+      img.onerror=reject;
+      img.src=dataUrl;
     });
   }
   function compact(record){
@@ -2514,6 +2531,18 @@ viewFO46 = function(andId,foId,print=false){
     renderAislacionPage();
   };
 
+  window.aisBackHome=function(){
+    if(aisState.current){
+      aisState.current=attachPending({...aisState.current});
+      aisState.current.estado='En proceso';
+      aisState.current.updatedAt=new Date().toISOString();
+      saveHistory(aisState.current);
+      aisState.current=null;
+      aisSave();
+    }
+    renderAislacionPage();
+  };
+
   window.aisStartForm=function(){
     try{aisLoad()}catch(e){aisState={current:null,history:[]}}
     aisState.current=null;
@@ -2562,7 +2591,16 @@ viewFO46 = function(andId,foId,print=false){
     renderAislacionPage();
   };
 
-  try{aisLiveHTML=window.aisLiveHTML;aisTakePhoto=window.aisTakePhoto;aisAddTramo=window.aisAddTramo;aisSaveProgress=window.aisSaveProgress;aisFinish=window.aisFinish;aisStartForm=window.aisStartForm;aisStart=window.aisStart;}catch(e){}
+  const baseWorkspaceHtmlFix=window.aisWorkspaceHTML;
+  if(baseWorkspaceHtmlFix){
+    window.aisWorkspaceHTML=function(){
+      const html=baseWorkspaceHtmlFix();
+      if(html.includes('onclick="aisBackHome()"'))return html;
+      return html.replace('<button class="btn ghost" onclick="aisSaveProgress()">Guardar avance</button>','<button class="btn ghost" onclick="aisBackHome()">Volver</button><button class="btn ghost" onclick="aisSaveProgress()">Guardar avance</button>');
+    };
+  }
+
+  try{aisLiveHTML=window.aisLiveHTML;aisTakePhoto=window.aisTakePhoto;aisAddTramo=window.aisAddTramo;aisSaveProgress=window.aisSaveProgress;aisFinish=window.aisFinish;aisStartForm=window.aisStartForm;aisStart=window.aisStart;aisBackHome=window.aisBackHome;aisWorkspaceHTML=window.aisWorkspaceHTML;}catch(e){}
 })();
 </script>
 
