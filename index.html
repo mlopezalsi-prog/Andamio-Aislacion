@@ -4223,5 +4223,145 @@ td{color:#071b3d!important;border-bottom:1px solid #edf2f7!important}
 })();
 </script>
 
+<style id="al-platform-card-refresh">
+.platformHero{
+  display:block!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  box-shadow:0 8px 22px rgba(7,27,61,.06)!important;
+  padding:28px 30px!important;
+}
+.platformWelcome{
+  padding:0!important;
+  background:transparent!important;
+}
+.platformWelcome h2{
+  margin:0!important;
+  color:#071b3d!important;
+  font-size:30px!important;
+  line-height:1.15!important;
+}
+.platformWelcome p,
+.platformStats{
+  display:none!important;
+}
+.platformGrid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:16px!important;
+}
+.platformCard{
+  min-height:390px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-end!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+  overflow:hidden!important;
+  padding:0!important;
+  background:#071b3d!important;
+  box-shadow:0 12px 30px rgba(7,27,61,.12)!important;
+}
+.platformCard:before{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  height:auto!important;
+  background-image:linear-gradient(180deg,rgba(7,27,61,.08) 0%,rgba(7,27,61,.28) 42%,rgba(7,27,61,.88) 100%),var(--module-bg)!important;
+  background-size:cover!important;
+  background-position:center!important;
+  opacity:1!important;
+  z-index:0!important;
+}
+.platformCard:first-child{--module-bg:url("assets/andamios-bg.png")}
+.platformCard:nth-child(2){--module-bg:url("assets/aislacion-bg.png")}
+.platformCard > *{
+  position:relative!important;
+  z-index:1!important;
+}
+.platformIcon{
+  display:none!important;
+}
+.platformCard h3{
+  color:#fff!important;
+  font-size:24px!important;
+  margin:0 24px 8px!important;
+  text-shadow:0 2px 10px rgba(0,0,0,.25)!important;
+}
+.platformCard p{
+  color:#eaf2ff!important;
+  margin:0 24px 14px!important;
+  max-width:560px!important;
+}
+.platformList{
+  margin:0 24px 18px!important;
+}
+.platformList li{
+  color:#f7fbff!important;
+  text-shadow:0 1px 8px rgba(0,0,0,.25)!important;
+}
+.platformComing{
+  display:none!important;
+}
+.platformCard .btn,
+.platformCard .btn.primary,
+.platformCard .btn.warn{
+  width:auto!important;
+  margin:0 24px 24px!important;
+  min-height:52px!important;
+  border-radius:6px!important;
+  background:#1167e8!important;
+  border:1px solid #1167e8!important;
+  color:#fff!important;
+  box-shadow:0 12px 28px rgba(17,103,232,.28)!important;
+  transform:translateY(0) scale(1)!important;
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease!important;
+}
+.platformCard .btn:hover{
+  background:#0756cf!important;
+  box-shadow:0 16px 32px rgba(17,103,232,.36)!important;
+}
+.platformCard .btn:active,
+.platformCard .btn.platformTap{
+  transform:translateY(2px) scale(.97)!important;
+  box-shadow:0 6px 14px rgba(17,103,232,.24)!important;
+}
+@media(max-width:900px){
+  .platformHero{padding:22px 24px!important}
+  .platformWelcome h2{font-size:26px!important}
+  .platformGrid{grid-template-columns:1fr!important}
+  .platformCard{min-height:360px!important}
+}
+</style>
+
+<script>
+/* Ajustes visuales de portada: saludo simple y animacion de botones. */
+(function(){
+  'use strict';
+  function refreshWelcome(){
+    const name=window.currentUser?.nombre || document.getElementById('platformUserBadge')?.textContent?.split('·')[0]?.trim() || 'Usuario';
+    const title=document.getElementById('welcomeTitle');
+    if(title)title.textContent='Bienvenido, '+name;
+  }
+  const previousSetSessionUser=window.setSessionUser;
+  if(previousSetSessionUser){
+    window.setSessionUser=function(user){
+      previousSetSessionUser(user);
+      refreshWelcome();
+    };
+    try{setSessionUser=window.setSessionUser}catch(e){}
+  }
+  document.addEventListener('pointerdown',ev=>{
+    const btn=ev.target.closest?.('.platformCard .btn');
+    if(!btn)return;
+    btn.classList.add('platformTap');
+    setTimeout(()=>btn.classList.remove('platformTap'),190);
+  });
+  window.addEventListener('load',()=>setTimeout(refreshWelcome,120));
+})();
+</script>
+
 </body>
 </html>
