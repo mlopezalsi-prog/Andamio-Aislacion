@@ -3476,5 +3476,752 @@ viewFO46 = function(andId,foId,print=false){
 })();
 </script>
 
+<style id="al-white-remaster">
+/* Remaster blanco inspirado en el tablero de referencia. Solo estilos: no cambia IDs, eventos ni scripts. */
+:root{
+  --bg:#f7f9fc!important;
+  --card:#ffffff!important;
+  --ink:#071b3d!important;
+  --muted:#5f6f86!important;
+  --line:#dce5f0!important;
+  --blue:#1167e8!important;
+  --blue2:#0756cf!important;
+  --green:#12a66a!important;
+  --amber:#f59e0b!important;
+  --red:#ef4444!important;
+  --dark:#071b3d!important;
+  --shadow:0 10px 28px rgba(7,27,61,.08)!important;
+  --soft-shadow:0 8px 22px rgba(7,27,61,.06)!important;
+}
+
+html,body{background:#f7f9fc!important;color:var(--ink)!important;letter-spacing:0!important}
+body,.login,.platformPage,.aisPage{
+  background:
+    linear-gradient(180deg,#ffffff 0,#f7f9fc 210px,#f4f7fb 100%)!important;
+}
+body:before{content:none!important}
+
+.loginCard,.platformWrap,.app,.aisShell{
+  background:#fff!important;
+  border:1px solid #e3ebf5!important;
+  box-shadow:0 18px 46px rgba(7,27,61,.08)!important;
+}
+.platformWrap{max-width:1180px!important;margin:22px auto!important;border-radius:8px!important;overflow:hidden!important}
+.app,.aisShell{grid-template-columns:184px minmax(0,1fr)!important;min-height:calc(100vh - 28px)!important;margin:14px!important;border-radius:8px!important;overflow:hidden!important}
+
+.sidebar,.aisSide{
+  background:#fff!important;
+  color:#071b3d!important;
+  border-right:1px solid #e3ebf5!important;
+  box-shadow:none!important;
+  padding:18px 14px!important;
+}
+.sideBrand,.aisBrand,.platformBrand,.brand{gap:12px!important}
+.sideBrand .mark,.aisBrand .mark,.platformBrand .mark,.brand .mark,.loginCard .mark{
+  width:74px!important;
+  height:54px!important;
+  border-radius:0!important;
+  background-color:#fff!important;
+  box-shadow:none!important;
+  border:0!important;
+}
+.sideBrand b,.aisBrand b,.brand h1,.platformBrand h1{color:#071b3d!important;font-weight:900!important}
+.sideBrand small,.aisBrand small,.brand p,.platformBrand p{color:#61718a!important;font-weight:600!important}
+.userBox{
+  background:#f7faff!important;
+  border:1px solid #e5edf7!important;
+  border-radius:8px!important;
+  padding:12px!important;
+  box-shadow:none!important;
+}
+.userBox b{color:#071b3d!important}
+.userBox span{color:#61718a!important}
+
+.nav{gap:6px!important;margin-top:12px!important}
+.nav button{
+  min-height:38px!important;
+  border-radius:6px!important;
+  color:#183456!important;
+  background:transparent!important;
+  border:1px solid transparent!important;
+  padding:10px 11px!important;
+  font-size:13px!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+.nav button:before{display:none!important}
+.nav button:hover,.nav button.active{
+  background:#eaf2ff!important;
+  color:#0756cf!important;
+  border-color:#eaf2ff!important;
+}
+
+.main,.aisMain{background:#fff!important;padding:24px 28px!important;min-width:0!important}
+.topbar,.aisTop,.platformTop{
+  background:#fff!important;
+  border:0!important;
+  border-bottom:1px solid #e3ebf5!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:20px 0!important;
+  margin:0 0 18px!important;
+}
+.topbar h2,.aisTop h2,.platformWelcome h2{font-size:26px!important;line-height:1.1!important;color:#071b3d!important;letter-spacing:0!important}
+.topbar p,.aisTop p,.platformWelcome p{color:#61718a!important;font-size:13px!important;font-weight:600!important}
+
+.platformHero{
+  grid-template-columns:1fr 420px!important;
+  gap:0!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+  margin:0 0 20px!important;
+  overflow:hidden!important;
+  background:#fff!important;
+  box-shadow:var(--soft-shadow)!important;
+}
+.platformWelcome{
+  background:#fff!important;
+  color:#071b3d!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:30px!important;
+}
+.platformWelcome:after{display:none!important}
+.platformStats{gap:0!important;border-left:1px solid #e3ebf5!important}
+.platformStat{
+  background:#fff!important;
+  border:0!important;
+  border-left:1px solid #eef2f7!important;
+  border-bottom:1px solid #eef2f7!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:24px!important;
+}
+.platformStat span,.miniKpi span,.aisStat span{color:#61718a!important;font-size:11px!important;font-weight:800!important;text-transform:none!important}
+.platformStat b,.miniKpi b,.aisStat b{color:#071b3d!important;font-size:26px!important}
+.platformGrid{gap:16px!important}
+.platformCard{
+  background:#fff!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+  box-shadow:var(--soft-shadow)!important;
+  padding:26px!important;
+  min-height:190px!important;
+}
+.platformCard:before{display:none!important}
+.platformCard:hover{transform:none!important;border-color:#bfd4f2!important;box-shadow:0 12px 30px rgba(7,27,61,.09)!important}
+.platformIcon{
+  width:64px!important;height:64px!important;border-radius:8px!important;
+  background:#eff6ff!important;border:1px solid #dbeafe!important;box-shadow:none!important;
+}
+.platformCard h3{color:#071b3d!important;font-size:20px!important}
+.platformCard p,.platformList li{color:#61718a!important}
+
+.card,.aisCard,.andamioCard,.plantCard,.miniKpi,.detailHero,.detailBox,.docCard,.histCard,.aisHistCard,.aisStat,.modalCard,.diagCard,.functionalPanel,.execCard{
+  background:#fff!important;
+  color:#071b3d!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+  box-shadow:var(--soft-shadow)!important;
+}
+.card{padding:16px!important;margin-bottom:16px!important}
+.cardHead h3,.aisCard h3,.detailTitle h2,.detailBox b,.andamioSector,.andamioPrec,.modalHead h3,.docCard h4,.histTop b,.aisEntry b{color:#071b3d!important}
+.muted,.card p,.andamioDesc,.andamioMeasures,.detailTitle p,.detailBox small,.docCard p,.histText,.aisEntry small,.readOnlyHint,.field small{color:#61718a!important}
+
+.compactKpis,.aisStats{gap:10px!important}
+.miniKpi,.aisStat{
+  min-height:78px!important;
+  padding:14px 16px!important;
+  cursor:pointer;
+}
+.miniKpi:after{display:none!important}
+.miniKpi.active{
+  outline:0!important;
+  background:#f0f6ff!important;
+  border-color:#9fc2f6!important;
+}
+
+.filters,.aisFilterBar{gap:10px!important}
+.field label{color:#50627a!important;font-size:11px!important;letter-spacing:.03em!important}
+.field input,.field select,.field textarea,.filters input,.filters select,.aisFilterBar input,.aisFilterBar select,.reportControls input,.reportControls select{
+  background:#fff!important;
+  color:#071b3d!important;
+  border:1px solid #d9e4f1!important;
+  border-radius:6px!important;
+  box-shadow:inset 0 1px 2px rgba(7,27,61,.03)!important;
+  padding:12px 13px!important;
+}
+.field input:focus,.field select:focus,.field textarea:focus,.filters input:focus,.filters select:focus{
+  border-color:#76aaf2!important;
+  box-shadow:0 0 0 3px rgba(17,103,232,.10)!important;
+}
+.readOnlyHint,.demo{
+  background:#f7faff!important;
+  border:1px dashed #cbd9ea!important;
+  border-radius:8px!important;
+}
+
+.btn,.aisActionBtn{
+  border-radius:6px!important;
+  box-shadow:none!important;
+  font-weight:850!important;
+  border:1px solid #d4e0ee!important;
+  background:#fff!important;
+  color:#0b2447!important;
+  transition:background .14s ease,border-color .14s ease,color .14s ease!important;
+}
+.btn:hover,.aisActionBtn:hover{transform:none!important;filter:none!important;background:#f7faff!important;border-color:#bdd2eb!important}
+.btn.primary,.aisActionBtn.primary{
+  background:#1167e8!important;
+  border-color:#1167e8!important;
+  color:#fff!important;
+}
+.btn.primary:hover,.aisActionBtn.primary:hover{background:#0756cf!important}
+.btn.ghost{background:#fff!important;color:#0b2447!important}
+.btn.ok,.btn.success{background:#e7f8ef!important;color:#087346!important;border-color:#bdebd2!important}
+.btn.warn{background:#fff7ed!important;color:#a05707!important;border-color:#fed7aa!important}
+.btn.danger{background:#fff1f2!important;color:#c02636!important;border-color:#fecdd3!important}
+
+.andamioGrid{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+.andamioCard{
+  grid-template-columns:92px minmax(0,1fr)!important;
+  min-height:104px!important;
+  overflow:hidden!important;
+}
+.andamioCard:before{display:none!important}
+.andamioCard:hover{transform:none!important;border-color:#bfd4f2!important;box-shadow:0 12px 28px rgba(7,27,61,.08)!important}
+.andamioPhoto,.detailPhoto,.photoBox,.aisHistThumb{
+  background:#eef3f8!important;
+  color:#7a8ca3!important;
+  border-color:#e1eaf4!important;
+}
+.andamioPhoto{width:92px!important;min-height:104px!important}
+.andamioInfo{padding:13px 15px!important}
+.andamioSector{font-size:16px!important}
+.andamioPrec{font-size:15px!important}
+.andamioMeta{gap:6px!important;margin:7px 0!important}
+
+.andamioGrid.andamioListView{
+  gap:10px!important;
+}
+.andamioGrid.andamioListView .andamioCard{
+  display:grid!important;
+  grid-template-columns:88px minmax(0,1fr) 250px!important;
+  align-items:stretch!important;
+  min-height:112px!important;
+  background:#fff!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+  box-shadow:0 5px 16px rgba(7,27,61,.05)!important;
+}
+.andamioGrid.andamioListView .andamioPhoto{
+  width:88px!important;
+  min-height:112px!important;
+  background:#eef3f8!important;
+  color:#6d7f96!important;
+  font-size:18px!important;
+  font-weight:800!important;
+}
+.andamioListBody{
+  display:grid!important;
+  grid-template-columns:1.05fr 1fr 1fr!important;
+  gap:14px!important;
+  align-items:center!important;
+  padding:14px 16px!important;
+  background:#fff!important;
+}
+.andamioListField small{
+  color:#5f6f86!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  letter-spacing:.03em!important;
+}
+.andamioListField b{
+  color:#071b3d!important;
+  font-size:15px!important;
+  font-weight:900!important;
+}
+.andamioListField span{
+  color:#5f6f86!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+.andamioListState{
+  display:grid!important;
+  align-content:center!important;
+  gap:10px!important;
+  padding:14px 16px!important;
+  background:#fff!important;
+  border-left:1px solid #edf2f7!important;
+}
+.andamioStateRow,.andamioListActions{
+  justify-content:flex-end!important;
+}
+.andamioListActions .btn{
+  min-height:34px!important;
+  padding:8px 11px!important;
+}
+.andamioValidity.vigente{background:#dff8ec!important;color:#087346!important;border-color:#bdebd2!important}
+.andamioValidity.proximo{background:#fff4de!important;color:#a05707!important;border-color:#fedca8!important}
+.andamioValidity.vencido{background:#fff1f2!important;color:#c02636!important;border-color:#fecdd3!important}
+.andamioValidity.sin-vigencia{background:#eef2f6!important;color:#53657b!important;border-color:#dbe3ec!important}
+
+#andamioModal .modalBody > .readOnlyHint:first-of-type{
+  display:none!important;
+}
+
+.badge,.statusBadge,.aisChip,.aisSyncBadge{
+  border-radius:999px!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  padding:5px 9px!important;
+  box-shadow:none!important;
+}
+.badge.ok,.statusBadge.armado,.aisSyncBadge.ok{background:#dff8ec!important;color:#087346!important;border-color:#bdebd2!important}
+.badge.blue,.statusBadge.modificado,.aisSyncBadge.blue{background:#e7f0ff!important;color:#0756cf!important;border-color:#bdd7ff!important}
+.badge.warn,.statusBadge.proximo,.statusBadge.pendiente,.aisSyncBadge.warn{background:#fff4de!important;color:#a05707!important;border-color:#fedca8!important}
+.badge.bad,.statusBadge.vencido,.aisSyncBadge.bad{background:#fff1f2!important;color:#c02636!important;border-color:#fecdd3!important;animation:none!important}
+.statusBadge.desarmado{background:#eef2f6!important;color:#53657b!important;border-color:#dbe3ec!important}
+
+.tableWrap{background:#fff!important;border:1px solid #dfe8f3!important;border-radius:8px!important}
+table{background:#fff!important;color:#071b3d!important}
+th{
+  background:#f7faff!important;
+  color:#50627a!important;
+  border-bottom:1px solid #dfe8f3!important;
+  font-size:11px!important;
+}
+td{color:#071b3d!important;border-bottom:1px solid #edf2f7!important}
+
+.modal{background:rgba(7,27,61,.38)!important;backdrop-filter:blur(6px)!important}
+.modalCard{max-width:1040px!important}
+.modalHead,.modalFoot{
+  background:#fff!important;
+  border-color:#e3ebf5!important;
+}
+.modalFoot{background:#f7faff!important}
+
+.tabs{
+  background:#fff!important;
+  border:0!important;
+  border-bottom:1px solid #e3ebf5!important;
+  border-radius:0!important;
+  padding:0!important;
+  gap:18px!important;
+}
+.tabs button{
+  background:transparent!important;
+  color:#50627a!important;
+  border-radius:0!important;
+  border-bottom:2px solid transparent!important;
+  padding:12px 2px!important;
+  box-shadow:none!important;
+}
+.tabs button.active{
+  background:transparent!important;
+  color:#0756cf!important;
+  border-bottom-color:#1167e8!important;
+}
+
+.aisGrid,.aisHomeGrid,.aisWorkGrid{gap:14px!important}
+.aisTask,.aisActionBtn,.aisEntry{
+  background:#fff!important;
+  color:#071b3d!important;
+  border:1px solid #dfe8f3!important;
+  border-radius:8px!important;
+}
+.aisTask.active{background:#e7f8ef!important;color:#087346!important;border-color:#8fd7b4!important}
+.aisTask.des.active{background:#fff4de!important;color:#a05707!important;border-color:#fedca8!important}
+.aisTask.rep.active{background:#e7f0ff!important;color:#0756cf!important;border-color:#bdd7ff!important}
+.aisQuickLen{
+  background:#fff!important;
+  color:#071b3d!important;
+  border:1px solid #76aaf2!important;
+  border-radius:8px!important;
+}
+.aisModal{background:#fff!important;color:#071b3d!important;border-radius:8px 8px 0 0!important}
+
+.mobileTop,.aisMobileTop,.bottomNav{
+  background:#fff!important;
+  color:#071b3d!important;
+  border-color:#e3ebf5!important;
+  box-shadow:0 -8px 28px rgba(7,27,61,.08)!important;
+}
+.bottomNav button{color:#61718a!important}
+.bottomNav button.active{background:#eaf2ff!important;color:#0756cf!important}
+.toast,.aisToast{
+  background:#071b3d!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:0 12px 28px rgba(7,27,61,.22)!important;
+}
+
+.foDocOriginal,.foTemplateDoc,.fo46Aligned,.reportShell,.reportPanel,.reportTable,.fo46TableOriginal{
+  background:#fff!important;
+  color:#111!important;
+}
+.fo46Aligned .fo46TableOriginal th,.fo46Aligned .fo46TableOriginal td,.fo46TableOriginal th,.fo46TableOriginal td{
+  background:#fff!important;
+  color:#111!important;
+  border-color:#111!important;
+}
+
+@media(max-width:900px){
+  .app,.aisShell{display:block!important;margin:0!important;border-radius:0!important;border:0!important}
+  .sidebar,.aisSide{display:none!important}
+  .main,.aisMain{padding:14px!important}
+  .platformWrap{margin:0!important;border-radius:0!important;border:0!important}
+  .platformHero{grid-template-columns:1fr!important}
+  .platformStats{border-left:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .platformGrid{grid-template-columns:1fr!important}
+  .topbar,.aisTop{display:block!important;padding:14px 0!important}
+  .topbar .actions,.aisTop .actions{margin-top:12px!important}
+  .compactKpis,.aisStats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .andamioCard{grid-template-columns:86px minmax(0,1fr)!important}
+  .andamioPhoto{width:86px!important}
+  .andamioGrid.andamioListView .andamioCard{
+    grid-template-columns:76px minmax(0,1fr)!important;
+    min-height:126px!important;
+    border-radius:8px!important;
+  }
+  .andamioGrid.andamioListView .andamioPhoto{
+    grid-row:1 / span 2!important;
+    width:76px!important;
+    min-height:126px!important;
+  }
+  .andamioListBody{
+    grid-template-columns:1fr!important;
+    gap:4px!important;
+    padding:12px 12px 6px!important;
+  }
+  .andamioListField small{
+    margin-bottom:2px!important;
+    font-size:9px!important;
+  }
+  .andamioListField b{font-size:14px!important}
+  .andamioListField span{font-size:11px!important}
+  .andamioListState{
+    grid-column:2!important;
+    border-left:0!important;
+    border-top:0!important;
+    padding:0 12px 12px!important;
+    gap:8px!important;
+  }
+  .andamioStateRow,.andamioListActions{
+    justify-content:flex-start!important;
+  }
+  .andamioListActions .btn{
+    flex:1 1 108px!important;
+  }
+  .modal{align-items:flex-end!important;padding:0!important}
+  .modalCard{border-radius:12px 12px 0 0!important;max-height:88vh!important}
+}
+
+@media print{
+  body,.modal,.modalCard,.foDoc,.foDocOriginal,.foTemplateDoc,#reportBody,#reportBody *{
+    background:#fff!important;
+    color:#111!important;
+    box-shadow:none!important;
+  }
+}
+</style>
+
+<script>
+/* Limpieza visual FO46: evita mostrar valores tecnicos vacios como "undefined". */
+(function(){
+  'use strict';
+  function foClean(value, fallback){
+    const s=String(value??'').trim();
+    if(!s || s.toLowerCase()==='undefined' || s.toLowerCase()==='null' || s.toLowerCase()==='nan') return fallback;
+    return s;
+  }
+  function foEsc(value){
+    return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function foResultInfo(value){
+    const txt=foClean(value,'Pendiente');
+    if(txt==='Conforme') return {txt,cls:'ok'};
+    if(txt==='Con observaciones') return {txt,cls:'warn'};
+    if(txt==='Pendiente') return {txt,cls:'warn'};
+    return {txt,cls:'bad'};
+  }
+  window.renderFoTab=function(a){
+    const rows=[...(a.fo46||[])].sort((x,y)=>new Date(y.fecha)-new Date(x.fecha));
+    const last=typeof lastFO==='function'?lastFO(a):rows[0];
+    return `<div class="actions" style="margin-bottom:12px"><button class="btn primary" onclick="openFO46Form('${a.id}')">+ Realizar FO46</button>${last?`<button class="btn warn" onclick="openFO46Form('${a.id}','${last.id}',true)">Corregir ultima inspeccion</button>`:''}</div><div class="tableWrap"><table><thead><tr><th>Fecha</th><th>Inspector</th><th>Resultado</th><th>Version</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${rows.map(f=>{const result=foResultInfo(f.resultado);const version=foClean(f.version,'-');return `<tr><td>${fmtDateTime(f.fecha)}</td><td>${foEsc(foClean(f.inspector,'Sin dato'))}</td><td><span class="badge ${result.cls}">${foEsc(result.txt)}</span></td><td>${version==='-'?'-':'V'+foEsc(version)}</td><td>${foEsc(foClean(f.estado,'Pendiente'))}</td><td><div class="actions"><button class="btn ghost" onclick="viewFO46('${a.id}','${f.id}')">Ver FO46</button><button class="btn ghost" onclick="viewFO46('${a.id}','${f.id}',true)">PDF/Imprimir</button>${foClean(f.estado,'')==='Borrador'?`<button class="btn primary" onclick="openFO46Form('${a.id}','${f.id}')">Editar</button>`:''}</div></td></tr>`}).join('')||'<tr><td colspan="6">Sin inspecciones FO46</td></tr>'}</tbody></table></div>`;
+  };
+  try{renderFoTab=window.renderFoTab}catch(e){}
+})();
+</script>
+
+<style id="al-ux-fixes-v4">
+.fo46Cards,.docFileList{display:grid;gap:10px}
+.fo46RowCard,.docFileCard{
+  border:1px solid #dfe8f3;
+  border-radius:8px;
+  background:#fff;
+  padding:12px;
+  box-shadow:0 5px 16px rgba(7,27,61,.04);
+}
+.fo46RowCard{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.fo46Main{display:grid;gap:6px;min-width:0}
+.fo46Main b{color:#071b3d;font-size:15px}
+.fo46MetaLine,.docMetaLine{color:#5f6f86;font-size:12px;font-weight:700;line-height:1.35}
+.fo46Actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.docFileCard{display:grid;gap:8px}
+.docFileCard a{font-weight:900;color:#0756cf;word-break:break-word}
+.docTypePill{justify-self:start}
+.aisPhotoStrip{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.aisPhotoStrip a,.aisPhotoStrip span{display:block}
+.aisPhotoStrip img,.aisHistThumb img,.aisReportPhotos img{
+  background:#eef3f8;
+  object-fit:cover;
+}
+.aisPhotoFallback{
+  display:grid;
+  place-items:center;
+  min-height:90px;
+  border:1px dashed #cbd9ea;
+  border-radius:8px;
+  color:#5f6f86;
+  font-weight:800;
+  padding:10px;
+  text-align:center;
+}
+.aisReportShell .logoMark,.aisReportPage .logoMark{
+  width:112px!important;
+  height:82px!important;
+  background-image:var(--al-logo)!important;
+  background-size:contain!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  color:transparent!important;
+  border:0!important;
+}
+@media(max-width:700px){
+  .fo46RowCard{grid-template-columns:1fr}
+  .fo46Actions{justify-content:flex-start}
+  .fo46Actions .btn{flex:1 1 130px}
+  .docGrid{grid-template-columns:1fr!important}
+}
+</style>
+
+<script>
+/* UX operativa v4: estados claros, FO46/documentos sin scroll, aislacion limpia y fotos robustas. */
+(function(){
+  'use strict';
+
+  function cleanText(v,fallback='-'){
+    const s=String(v??'').trim();
+    return (!s || /^(undefined|null|nan)$/i.test(s)) ? fallback : s;
+  }
+  function esc(v){
+    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function arr(v){
+    if(Array.isArray(v))return v;
+    try{const x=JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch(e){return []}
+  }
+  function statusOnly(a){
+    if(a?.estado==='Desarmado')return {txt:'Desarmado',cls:'desarmado'};
+    const s=typeof status==='function'?status(a):{txt:''};
+    if(s.txt==='Vencido')return {txt:'Vencido',cls:'vencido'};
+    if(s.txt==='Próximo'||s.txt==='Proximo')return {txt:'Próximo a vencer',cls:'proximo'};
+    return {txt:'Vigente',cls:'armado'};
+  }
+  window.operativeStatus=statusOnly;
+  try{operativeStatus=window.operativeStatus}catch(e){}
+
+  function docCategory(tipo){
+    const s=cleanText(tipo,'').toLowerCase();
+    if(s.includes('fact'))return 'Facturación';
+    if(s.includes('fo46'))return 'FO46';
+    if(s.includes('foto'))return 'Fotos';
+    return 'Documentos';
+  }
+  function docUrl(d){return cleanText(d?.driveUrl||d?.fileUrl||d?.url,'');}
+  function docName(d){return cleanText(d?.nombre||d?.fileName||d?.name||'Archivo','Archivo');}
+  function fileIdFromUrl(url){
+    const s=cleanText(url,'');
+    let m=s.match(/[?&]id=([^&]+)/);
+    if(m)return decodeURIComponent(m[1]);
+    m=s.match(/\/d\/([^/?#]+)/);
+    if(m)return decodeURIComponent(m[1]);
+    return '';
+  }
+  function validDriveId(id){
+    const s=cleanText(id,'');
+    return /^[A-Za-z0-9_-]{10,}$/.test(s)?s:'';
+  }
+  function driveIdOf(f){
+    return validDriveId(f?.driveId||f?.fileId||f?.fotoFileId||f?.id)||validDriveId(fileIdFromUrl(f?.driveUrl||f?.fileUrl||f?.fotoFileUrl||f?.url));
+  }
+  function photoObj(f){
+    if(!f)return null;
+    if(typeof f==='string'){
+      const id=driveIdOf({url:f});
+      return {thumb:id?`https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w800`:f,open:id?`https://drive.google.com/file/d/${encodeURIComponent(id)}/view`:f,name:'Foto'};
+    }
+    if(f.data)return {thumb:f.data,open:f.data,name:cleanText(f.nombre||f.name,'Foto')};
+    const id=driveIdOf(f);
+    const direct=cleanText(f.fileUrl||f.fotoFileUrl||f.url,'');
+    const open=cleanText(f.driveUrl,'') || (id?`https://drive.google.com/file/d/${encodeURIComponent(id)}/view`:direct);
+    const thumb=id?`https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w800`:direct;
+    return thumb?{thumb,open,name:cleanText(f.nombre||f.name,'Foto')}:null;
+  }
+  function recordPhotos(record){
+    const out=[];
+    arr(record?.fotos||record?.photos).forEach(f=>{const p=photoObj(f);if(p)out.push(p)});
+    arr(record?.registros).forEach(reg=>{
+      arr(reg.fotoFiles||reg.fotos||reg.photos).forEach(f=>{const p=photoObj(f);if(p)out.push({...p,reg})});
+      arr(reg.fotosDetalle).forEach(f=>{const p=photoObj(f);if(p)out.push({...p,reg})});
+    });
+    return out;
+  }
+  function imgHtml(p,label='Foto'){
+    const name=esc(p.name||label);
+    const open=esc(p.open||p.thumb);
+    const thumb=esc(p.thumb);
+    return `<a href="${open}" target="_blank"><img src="${thumb}" alt="${name}" onerror="this.closest('a').outerHTML='<span class=&quot;aisPhotoFallback&quot;>Foto disponible en Drive</span>'"></a>`;
+  }
+
+  window.andamioCard=function(a){
+    const os=statusOnly(a),med=`${a.largo||0} x ${a.ancho||0} x ${a.alto||0} m`,img=typeof driveImageUrl==='function'?driveImageUrl(a):(a.foto||'');
+    const subtitle=[a.obra,a.descripcion].filter(Boolean).join(' - ');
+    return `<article class="andamioCard" onclick="openDetail('${a.id}')">
+      <div class="andamioPhoto">${img?`<img src="${esc(img)}" alt="Foto ${esc(a.precinto)}">`:'CAM'}</div>
+      <div class="andamioListBody">
+        <div class="andamioListField"><small>Precinto</small><b>${esc(a.precinto||'-')}</b><span>${esc(subtitle||'Sin descripción')}</span></div>
+        <div class="andamioListField"><small>Sector</small><b>${esc(a.sector||'-')}</b><span>${esc(a.obra||'-')}</span></div>
+        <div class="andamioListField"><small>Medidas</small><b>${esc(med)}</b><span>${esc(typeof m3==='function'?m3(a):'-')} m³</span></div>
+      </div>
+      <div class="andamioListState">
+        <div class="andamioStateRow"><span class="statusBadge ${os.cls}">${esc(os.txt)}</span></div>
+        <div class="andamioListActions"><button class="btn ghost" onclick="event.stopPropagation();openDetail('${a.id}')">Ver detalle</button><button class="btn primary" onclick="event.stopPropagation();openAndamio('${a.id}')">Modificar</button></div>
+      </div>
+    </article>`;
+  };
+  try{andamioCard=window.andamioCard}catch(e){}
+
+  window.renderAndamios=function(){
+    let list=visibleAndamios();
+    if(filters.q)list=filterByText(list,filters.q);
+    if(filters.obra)list=list.filter(a=>a.obra===filters.obra);
+    if(filters.estado==='proximo')list=list.filter(a=>statusOnly(a).cls==='proximo');
+    else if(filters.estado==='vencido')list=list.filter(a=>statusOnly(a).cls==='vencido');
+    else if(filters.estado==='vigente')list=list.filter(a=>statusOnly(a).cls==='armado');
+    else if(filters.estado==='desarmado')list=list.filter(a=>statusOnly(a).cls==='desarmado');
+    else if(filters.estado==='doc')list=list.filter(a=>docWarns(a).length);
+    document.getElementById('view-andamios').innerHTML=header('Andamios','Vigencia calculada desde la fecha de montaje: 30 días; alerta desde 10 días antes.',`<button class="btn primary" onclick="openAndamio()">+ Nueva carga</button>`)+`<div class="card"><div class="filters"><input placeholder="Buscar precinto, sector, obra o descripción..." value="${filters.q}" oninput="filters.q=this.value;renderAndamios()"><select onchange="filters.obra=this.value;renderAndamios()"><option value="">Todas las obras</option>${userObras().map(o=>`<option ${filters.obra===o?'selected':''}>${esc(o)}</option>`).join('')}</select><select onchange="filters.estado=this.value;renderAndamios()"><option value="">Todos</option><option value="vigente" ${filters.estado==='vigente'?'selected':''}>Vigentes</option><option value="proximo" ${filters.estado==='proximo'?'selected':''}>Próximos a vencer</option><option value="vencido" ${filters.estado==='vencido'?'selected':''}>Vencidos</option><option value="desarmado" ${filters.estado==='desarmado'?'selected':''}>Desarmados</option><option value="doc" ${filters.estado==='doc'?'selected':''}>Pendientes documentación</option></select></div><div class="andamioGrid andamioListView">${list.map(andamioCard).join('')||'<div class="empty">No hay registros</div>'}</div></div>`;
+  };
+  try{renderAndamios=window.renderAndamios}catch(e){}
+
+  const previousOpenDetail=window.openDetail;
+  window.openDetail=function(id,tab='general'){
+    previousOpenDetail(id,tab);
+    const a=(db.andamios||[]).find(x=>String(x.id)===String(id));
+    if(!a)return;
+    const badge=document.querySelector('#detailBody .detailTitle .statusBadge');
+    if(badge){const os=statusOnly(a);badge.className='statusBadge '+os.cls;badge.textContent=os.txt;}
+  };
+  try{openDetail=window.openDetail}catch(e){}
+
+  window.renderFoTab=function(a){
+    const rows=[...(a.fo46||[])].sort((x,y)=>new Date(y.fecha)-new Date(x.fecha));
+    const last=typeof lastFO==='function'?lastFO(a):rows[0];
+    const cards=rows.map(f=>{
+      const result=cleanText(f.resultado,'Pendiente');
+      const cls=result==='Conforme'?'ok':result==='Con observaciones'?'warn':result==='Pendiente'?'warn':'bad';
+      const version=cleanText(f.version,'-');
+      return `<div class="fo46RowCard">
+        <div class="fo46Main"><span class="badge ${cls}">${esc(result)}</span><b>${esc(cleanText(f.inspector,'Sin inspector'))}</b><div class="fo46MetaLine">${fmtDateTime(f.fecha)}${version==='-'?'':' · V'+esc(version)}</div></div>
+        <div class="fo46Actions"><button class="btn ghost" onclick="viewFO46('${a.id}','${f.id}')">Ver FO46</button><button class="btn ghost" onclick="viewFO46('${a.id}','${f.id}',true)">PDF/Imprimir</button>${cleanText(f.estado,'')==='Borrador'?`<button class="btn primary" onclick="openFO46Form('${a.id}','${f.id}')">Editar</button>`:''}</div>
+      </div>`;
+    }).join('');
+    return `<div class="actions" style="margin-bottom:12px"><button class="btn primary" onclick="openFO46Form('${a.id}')">+ Realizar FO46</button>${last?`<button class="btn warn" onclick="openFO46Form('${a.id}','${last.id}',true)">Corregir última inspección</button>`:''}</div><div class="fo46Cards">${cards||'<div class="empty">Sin inspecciones FO46</div>'}</div>`;
+  };
+  try{renderFoTab=window.renderFoTab}catch(e){}
+
+  window.renderDocs=function(a){
+    const docs=arr(a.documentos).filter(d=>docCategory(d.tipo)!=='Facturación');
+    const files=docs.map(d=>{
+      const url=docUrl(d), name=docName(d);
+      return `<div class="docFileCard"><span class="badge blue docTypePill">${esc(cleanText(d.tipo,'Adjunto'))}</span><a ${url?`href="${esc(url)}" target="_blank"`:''}>${esc(name)}</a><div class="docMetaLine">${fmtDateTime(d.fecha)} · ${esc(docCategory(d.tipo))}</div></div>`;
+    }).join('');
+    return `<div class="docGrid"><div class="docCard"><h4>Memoria de cálculo</h4><p><span class="badge ${requiereMemoria(a)&&!hasDoc(a,'Memoria de cálculo')?'warn':'ok'}">${requiereMemoria(a)?(hasDoc(a,'Memoria de cálculo')?'Cargada':'Falta memoria'):'No corresponde'}</span></p><button class="btn ghost" onclick="openDocForm('${a.id}','Memoria de cálculo')">Agregar</button></div><div class="docCard"><h4>Permiso de trabajo</h4><p><span class="badge ${permisoReq(a)&&!hasDoc(a,'Permiso de trabajo')?'warn':'ok'}">${permisoReq(a)?(hasDoc(a,'Permiso de trabajo')?'Cargado':'Falta permiso'):'No requerido'}</span></p><button class="btn ghost" onclick="openDocForm('${a.id}','Permiso de trabajo')">Agregar</button></div><div class="docCard"><h4>Adjuntos</h4><p><span class="badge blue">${docs.length} archivos</span></p><button class="btn ghost" onclick="openDocForm('${a.id}','Adjunto')">Agregar</button></div></div><div class="card" style="box-shadow:none;margin-top:14px"><div class="cardHead"><h3>Archivos vinculados</h3></div><div class="docFileList">${files||'<div class="empty">Sin archivos cargados</div>'}</div></div>`;
+  };
+  try{renderDocs=window.renderDocs}catch(e){}
+
+  window.aisHomeHTML=function(){
+    const h=(aisState&&aisState.history)||[];
+    const active=aisState&&aisState.current?1:0;
+    const done=h.filter(r=>r.estado==='Finalizado').length;
+    const pending=h.filter(r=>r.estado==='Finalizado'&&String(r.syncStatus||'').toLowerCase()!=='sincronizado').length;
+    const photos=h.reduce((a,r)=>a+recordPhotos(r).length,0);
+    const diametros=['2&quot;','3&quot;','4&quot;','6&quot;','8&quot;','10&quot;','12&quot;','14&quot;','16&quot;','18&quot;','20&quot;','24&quot;'];
+    const obras=((db&&db.obras)||[]).filter(o=>o.activa).map(o=>`<option>${esc(o.nombre)}</option>`).join('');
+    return `<div class="aisTop"><div><h2>Control de Aislación</h2><p>Relevamientos por línea/equipo, fotos y cierre con legajo en Drive.</p></div><div class="actions"><button class="btn ghost" onclick="backToPlatforms()">Plataformas</button><button class="btn primary" onclick="aisStartForm()">+ Nuevo relevamiento</button></div></div>
+    <div class="aisStats aisOpsStats"><div class="aisStat"><span>En curso</span><b>${active}</b></div><div class="aisStat"><span>Finalizados</span><b>${done}</b></div><div class="aisStat"><span>Pendientes Drive</span><b>${pending}</b></div><div class="aisStat"><span>Fotos</span><b>${photos}</b></div></div>
+    <div class="aisGrid aisHomeGrid"><div class="aisCard aisSetupPanel"><h3>Nuevo relevamiento</h3><div class="aisTaskCards"><div class="aisTask active" id="task-montaje" onclick="aisSelectTask('montaje')">Montaje<br><small>Aislación instalada</small></div><div class="aisTask des" id="task-desmontaje" onclick="aisSelectTask('desmontaje')">Desmontaje<br><small>Aislación retirada</small></div><div class="aisTask rep" id="task-reparacion" onclick="aisSelectTask('reparacion')">Reparación<br><small>Intervención parcial</small></div></div><input type="hidden" id="aisTask" value="montaje"><div class="modalGrid"><div class="field"><label>Obra</label><select id="aisObra"><option value="">Seleccionar obra</option>${obras}</select></div><div class="field"><label>Sector</label><input id="aisSector" value="" placeholder="Escribir sector"></div><div class="field"><label>Línea / Equipo</label><input id="aisLinea" value="" placeholder="Ej: LT-101"></div><div class="field"><label>Nro. de isométrico</label><input id="aisIso" value="" placeholder="Ej: ISO-101"></div><div class="field"><label>Diámetro de cañería</label><select id="aisDiametro"><option value="">Seleccionar diámetro</option>${diametros.map(d=>`<option>${d}</option>`).join('')}</select></div><div class="field"><label>Material</label><input id="aisMaterial" value="" placeholder="Ej: Lana mineral"></div><div class="field"><label>Espesor de aislación</label><input id="aisEspesor" value="" placeholder="Ej: 50 mm"></div><div class="field"><label>Capas</label><input id="aisCapas" type="number" value="" placeholder="Ej: 2"></div><div class="field"><label>Tipo de chapa</label><select id="aisChapa"><option value="">Seleccionar chapa</option><option>Sin chapa</option><option>Aluminio</option><option>Galvanizado</option><option>Inoxidable</option><option>Otra</option></select></div></div><button class="btn primary" style="width:100%;padding:16px" onclick="aisStart()">Comenzar recorrido</button></div>
+    <div class="aisCard"><h3>Historial operativo</h3>${typeof aisHistoryCards==='function'?(h.length?aisHistoryCards(h):'<div class="empty">Todavía no hay relevamientos guardados.</div>'):'<div class="empty">Sin historial</div>'}</div></div>`;
+  };
+  try{aisHomeHTML=window.aisHomeHTML}catch(e){}
+
+  const oldAisStart=window.aisStart;
+  window.aisStart=function(){
+    const required=['aisObra','aisSector','aisLinea'];
+    if(required.some(id=>!cleanText(document.getElementById(id)?.value,''))){(typeof aisMiniToast==='function'?aisMiniToast:toast)('Completá obra, sector y línea/equipo');return}
+    oldAisStart();
+  };
+  try{aisStart=window.aisStart}catch(e){}
+
+  window.aisHistoryCards=function(list){
+    const rows=(list||[]);
+    if(!rows.length)return `<div class="empty">No hay relevamientos para esos filtros.</div>`;
+    return `<div class="aisHistoryList polished">${rows.map(r=>{
+      const photos=recordPhotos(r), first=photos[0];
+      const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,tramos:0,acc:0,fotos:photos.length};
+      const st=String(r.syncStatus||'').toLowerCase()==='sincronizado'?{txt:'Sincronizado',cls:'ok'}:{txt:r.estado==='Finalizado'?'Pendiente Drive':'En proceso',cls:r.estado==='Finalizado'?'warn':'blue'};
+      return `<div class="aisHistCard polished">
+        <div class="aisHistThumb">${first?imgHtml(first,r.linea):'Sin foto'}</div>
+        <div class="aisHistMain"><div class="aisHistTitle"><span class="aisTypeDot ${esc(r.tipo||'montaje')}"></span><h3>${esc(r.linea||'Sin línea')}</h3></div><div class="aisHistMeta">${esc(r.obra||'-')} · ${esc(r.sector||'-')}<br>Fecha: ${fmtDateTime(r.finishedAt||r.fecha)}</div><div class="aisHistMetrics"><span class="aisChip">${fmtNum(s.metros||0)} m</span><span class="aisChip">${fmtNum(s.m2||0)} m2</span><span class="aisChip">${s.tramos||0} tramos</span><span class="aisChip">${s.acc||0} acc.</span><span class="aisChip">${photos.length||s.fotos||0} fotos</span></div></div>
+        <div class="aisHistSide"><span class="aisSyncBadge ${st.cls}">${esc(st.txt)}</span><div class="aisHistActions"><button class="btn ghost" onclick="aisViewHist('${esc(r.id)}')">Ver</button><button class="btn primary" onclick="aisContinue('${esc(r.id)}')">${r.estado==='Finalizado'?'Editar':'Continuar'}</button><button class="btn ok" onclick="aisWhatsApp('${esc(r.id)}')">WhatsApp</button></div></div>
+      </div>`;
+    }).join('')}</div>`;
+  };
+  try{aisHistoryCards=window.aisHistoryCards}catch(e){}
+
+  window.aisViewHist=function(id){
+    const r=(aisState.history||[]).find(x=>String(x.id)===String(id));
+    if(!r)return;
+    const photos=recordPhotos(r);
+    const s=typeof aisSummary==='function'?aisSummary(r):{metros:0,m2:0,acc:0,fotos:photos.length};
+    const strip=photos.length?`<div class="aisPhotoStrip">${photos.map(p=>imgHtml(p,r.linea)).join('')}</div>`:'<div class="aisPhotoFallback">Sin fotos disponibles</div>';
+    aisSheet(`<h3>Detalle - ${esc(r.linea||'Aislación')}</h3>${strip}<p><b>${esc(r.tipo||'Montaje')}</b> · ${esc(r.obra||'-')} · ${esc(r.sector||'-')}</p><div class="aisStats"><div class="aisStat"><span>Metros totales</span><b>${fmtNum(s.metros||0)}</b></div><div class="aisStat"><span>m2 estimados</span><b>${fmtNum(s.m2||0)}</b></div><div class="aisStat"><span>Accesorios</span><b>${s.acc||0}</b></div><div class="aisStat"><span>Fotos</span><b>${photos.length||s.fotos||0}</b></div></div><div class="aisLive">${typeof aisLiveHTML==='function'?aisLiveHTML(r):''}</div><div class="actions" style="margin-top:12px"><button class="btn ghost" onclick="aisCloseSheet()">Cerrar</button><button class="btn ok" onclick="aisWhatsApp('${esc(id)}')">WhatsApp</button></div>`);
+  };
+  try{aisViewHist=window.aisViewHist}catch(e){}
+
+  window.aisLiveHTML=function(record){
+    const regs=arr(record?.registros).slice().reverse();
+    if(!regs.length)return `<div class="empty">La bitácora se arma automáticamente mientras registrás el recorrido.</div>`;
+    return regs.map(x=>{
+      const photos=[];
+      arr(x.fotoFiles||x.fotos||x.photos).forEach(f=>{const p=photoObj(f);if(p)photos.push(p)});
+      arr(x.fotosDetalle).forEach(f=>{const p=photoObj(f);if(p)photos.push(p)});
+      const icon=x.kind==='tramo'?'Med':x.kind==='accesorio'?'Acc':x.kind==='equipo'?'Eq':x.kind==='foto'?'Foto':'Obs';
+      return `<div class="aisEntry"><div class="aisEntryIcon">${icon}</div><div><b>${esc(x.title||'Registro')}</b><small>${esc(x.desc||'')}</small>${photos.length?`<div class="aisEntryPhotos">${photos.map(p=>imgHtml(p,x.title||'Foto')).join('')}</div>`:''}</div><div class="time">${esc(x.time||'')}</div></div>`;
+    }).join('');
+  };
+  try{aisLiveHTML=window.aisLiveHTML}catch(e){}
+
+  if(window.renderAisReport){
+    const oldRender=window.renderAisReport;
+    window.renderAisReport=function(rows,insideModal){
+      return oldRender(rows,insideModal).replace('<div class="reportLogo"><div class="logoMark">AL</div></div>','<div class="reportLogo"><div class="logoMark">AL</div></div>');
+    };
+  }
+})();
+</script>
+
 </body>
 </html>
