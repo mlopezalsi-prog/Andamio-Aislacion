@@ -4874,5 +4874,106 @@ Fotos: ${total.fotos}`;
 })();
 </script>
 
+<style id="al-ais-keyboard-done-v10">
+@media(max-width:900px){
+  .aisQuickSaveBar{
+    width:min(360px,calc(100vw - 28px))!important;
+    left:auto!important;
+    right:14px!important;
+    bottom:calc(env(safe-area-inset-bottom) + 12px)!important;
+    transform:none!important;
+    grid-template-columns:1fr auto!important;
+  }
+  .aisQuickSaveBar b{
+    font-size:12px!important;
+  }
+  .aisQuickSaveBar button{
+    width:58px!important;
+    height:52px!important;
+    padding:0!important;
+    border-radius:14px!important;
+    font-size:30px!important;
+    line-height:1!important;
+  }
+}
+</style>
+
+<script>
+/* Aislacion v10: teclado decimal con accion confirmar y boton tilde. */
+(function(){
+  'use strict';
+  function focusMeasure(){
+    const input=document.getElementById('aisLen');
+    if(!input)return;
+    input.focus({preventScroll:true});
+    input.select();
+    document.body.classList.add('ais-fast-entry');
+  }
+  function saveAndKeepTyping(){
+    if(typeof aisAddTramo==='function')aisAddTramo();
+    setTimeout(focusMeasure,140);
+  }
+  function enhanceDoneKeyboard(){
+    const input=document.getElementById('aisLen');
+    if(!input)return;
+
+    input.type='text';
+    input.inputMode='decimal';
+    input.setAttribute('inputmode','decimal');
+    input.setAttribute('enterkeyhint','done');
+    input.setAttribute('autocomplete','off');
+    input.setAttribute('autocorrect','off');
+    input.setAttribute('spellcheck','false');
+    input.setAttribute('pattern','[0-9]*[\\.,]?[0-9]*');
+
+    if(input.dataset.doneKeyboard==='1')return;
+    input.dataset.doneKeyboard='1';
+
+    input.addEventListener('keydown',ev=>{
+      if(ev.key==='Enter'){
+        ev.preventDefault();
+        ev.stopPropagation();
+        saveAndKeepTyping();
+      }
+    },true);
+    input.addEventListener('focus',()=>{
+      document.body.classList.add('ais-fast-entry');
+      setTimeout(()=>input.select(),40);
+    });
+    input.addEventListener('blur',()=>setTimeout(()=>{
+      if(document.activeElement?.id!=='aisLen')document.body.classList.remove('ais-fast-entry');
+    },220));
+
+    let bar=document.getElementById('aisQuickSaveBar');
+    if(!bar){
+      document.body.insertAdjacentHTML('beforeend',`<div class="aisQuickSaveBar" id="aisQuickSaveBar"><b>Guardar y seguir</b><button type="button" aria-label="Guardar medida" onclick="alAisQuickSave()">✓</button></div>`);
+      bar=document.getElementById('aisQuickSaveBar');
+    }else{
+      bar.innerHTML='<b>Guardar y seguir</b><button type="button" aria-label="Guardar medida" onclick="alAisQuickSave()">✓</button>';
+    }
+  }
+  window.alAisQuickSave=saveAndKeepTyping;
+  const prevRender=window.renderAislacionPage;
+  if(prevRender){
+    window.renderAislacionPage=function(){
+      const result=prevRender.apply(this,arguments);
+      setTimeout(enhanceDoneKeyboard,100);
+      return result;
+    };
+    try{renderAislacionPage=window.renderAislacionPage}catch(e){}
+  }
+  const prevWorkspace=window.aisWorkspaceHTML;
+  if(prevWorkspace){
+    window.aisWorkspaceHTML=function(){
+      return prevWorkspace.apply(this,arguments)
+        .replace('type="number" inputmode="decimal"', 'type="text" inputmode="decimal" enterkeyhint="done"')
+        .replace('tocá Enter/Guardar', 'tocá ✓/Listo');
+    };
+    try{aisWorkspaceHTML=window.aisWorkspaceHTML}catch(e){}
+  }
+  window.addEventListener('load',()=>setTimeout(enhanceDoneKeyboard,250));
+})();
+</script>
+
 </body>
 </html>
