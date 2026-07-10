@@ -4363,5 +4363,243 @@ td{color:#071b3d!important;border-bottom:1px solid #edf2f7!important}
 })();
 </script>
 
+<style id="al-ais-fast-entry-v5">
+.aisQuickSaveBar{
+  display:none;
+  position:fixed;
+  left:50%;
+  bottom:calc(env(safe-area-inset-bottom) + 14px);
+  transform:translateX(-50%);
+  z-index:240;
+  width:min(440px,calc(100vw - 24px));
+  gap:10px;
+  align-items:center;
+  background:#071b3d;
+  color:#fff;
+  border-radius:10px;
+  padding:10px;
+  box-shadow:0 18px 42px rgba(7,27,61,.28);
+}
+body.ais-fast-entry .aisQuickSaveBar{display:flex}
+.aisQuickSaveBar b{flex:1;font-size:13px;line-height:1.2}
+.aisQuickSaveBar button{
+  border:0;
+  border-radius:8px;
+  background:#1167e8;
+  color:#fff;
+  font-weight:900;
+  padding:12px 14px;
+}
+.aisQuickSaveBar button:active{transform:scale(.97)}
+@media(min-width:901px){
+  .aisQuickSaveBar{display:none!important}
+}
+</style>
+
+<script>
+/* Aislacion v5: sector por obra, listas tecnicas y carga rapida con Enter. */
+(function(){
+  'use strict';
+  const materiales=['Lana Mineral','Poliuretano','Manta de Fibra cerámica'];
+  const espesores=['1/2&quot;','3/4&quot;','1&quot;','1 1/2&quot;','2&quot;','2 1/2&quot;','3&quot;','4&quot;','5&quot;','6&quot;'];
+  const diametros=['2&quot;','3&quot;','4&quot;','6&quot;','8&quot;','10&quot;','12&quot;','14&quot;','16&quot;','18&quot;','20&quot;','24&quot;'];
+
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function activeObras(){return ((window.db&&db.obras)||[]).filter(o=>o.activa!==false);}
+  function sectorsForObra(name){
+    const obra=activeObras().find(o=>String(o.nombre)===String(name));
+    return [...new Set((obra?.sectores||[]).filter(Boolean))];
+  }
+  function options(list,placeholder,selected=''){
+    return `<option value="">${esc(placeholder)}</option>`+list.map(v=>`<option value="${esc(v)}" ${String(v)===String(selected)?'selected':''}>${esc(v)}</option>`).join('');
+  }
+  window.alAisFillSectors=function(selected=''){
+    const obra=document.getElementById('aisObra')?.value||'';
+    const sector=document.getElementById('aisSector');
+    if(!sector)return;
+    const list=sectorsForObra(obra);
+    sector.innerHTML=options(list,list.length?'Seleccionar sector':'Sin sectores cargados',selected||sector.value);
+  };
+
+  window.aisHomeHTML=function(){
+    const h=(window.aisState&&aisState.history)||[];
+    const active=aisState&&aisState.current?1:0;
+    const done=h.filter(r=>r.estado==='Finalizado').length;
+    const pending=h.filter(r=>r.estado==='Finalizado'&&String(r.syncStatus||'').toLowerCase()!=='sincronizado').length;
+    const photos=h.reduce((a,r)=>a+(typeof recordPhotos==='function'?recordPhotos(r).length:0),0);
+    const obras=activeObras().map(o=>`<option value="${esc(o.nombre)}">${esc(o.nombre)}</option>`).join('');
+    return `<div class="aisTop"><div><h2>Control de Aislación</h2><p>Relevamientos por línea/equipo, fotos y cierre con legajo en Drive.</p></div><div class="actions"><button class="btn ghost" onclick="backToPlatforms()">Plataformas</button><button class="btn primary" onclick="aisStartForm()">+ Nuevo relevamiento</button></div></div>
+    <div class="aisStats aisOpsStats"><div class="aisStat"><span>En curso</span><b>${active}</b></div><div class="aisStat"><span>Finalizados</span><b>${done}</b></div><div class="aisStat"><span>Pendientes Drive</span><b>${pending}</b></div><div class="aisStat"><span>Fotos</span><b>${photos}</b></div></div>
+    <div class="aisGrid aisHomeGrid"><div class="aisCard aisSetupPanel"><h3>Nuevo relevamiento</h3><div class="aisTaskCards"><div class="aisTask active" id="task-montaje" onclick="aisSelectTask('montaje')">Montaje<br><small>Aislación instalada</small></div><div class="aisTask des" id="task-desmontaje" onclick="aisSelectTask('desmontaje')">Desmontaje<br><small>Aislación retirada</small></div><div class="aisTask rep" id="task-reparacion" onclick="aisSelectTask('reparacion')">Reparación<br><small>Intervención parcial</small></div></div><input type="hidden" id="aisTask" value="montaje"><div class="modalGrid"><div class="field"><label>Obra</label><select id="aisObra" onchange="alAisFillSectors()"><option value="">Seleccionar obra</option>${obras}</select></div><div class="field"><label>Sector</label><select id="aisSector"><option value="">Seleccionar sector</option></select></div><div class="field"><label>Línea / Equipo</label><input id="aisLinea" value="" placeholder="Ej: LT-101"></div><div class="field"><label>Nro. de isométrico</label><input id="aisIso" value="" placeholder="Ej: ISO-101"></div><div class="field"><label>Diámetro de cañería</label><select id="aisDiametro">${options(diametros,'Seleccionar diámetro')}</select></div><div class="field"><label>Material</label><select id="aisMaterial">${options(materiales,'Seleccionar material')}</select></div><div class="field"><label>Espesor de aislación</label><select id="aisEspesor">${options(espesores,'Seleccionar espesor')}</select></div><div class="field"><label>Capas</label><input id="aisCapas" type="number" value="" placeholder="Ej: 2"></div><div class="field"><label>Tipo de chapa</label><select id="aisChapa"><option value="">Seleccionar chapa</option><option>Sin chapa</option><option>Aluminio</option><option>Galvanizado</option><option>Inoxidable</option><option>Otra</option></select></div></div><button class="btn primary" style="width:100%;padding:16px" onclick="aisStart()">Comenzar recorrido</button></div>
+    <div class="aisCard"><h3>Historial operativo</h3>${typeof aisHistoryCards==='function'?(h.length?aisHistoryCards(h):'<div class="empty">Todavía no hay relevamientos guardados.</div>'):'<div class="empty">Sin historial</div>'}</div></div>`;
+  };
+  try{aisHomeHTML=window.aisHomeHTML}catch(e){}
+
+  function enhanceQuickMeasure(){
+    const input=document.getElementById('aisLen');
+    if(!input||input.dataset.fastEntry==='1')return;
+    input.dataset.fastEntry='1';
+    input.setAttribute('enterkeyhint','done');
+    input.setAttribute('autocomplete','off');
+    input.addEventListener('keydown',ev=>{
+      if(ev.key==='Enter'){
+        ev.preventDefault();
+        if(typeof aisAddTramo==='function')aisAddTramo();
+        setTimeout(()=>{const next=document.getElementById('aisLen');if(next){next.focus();next.select();}},120);
+      }
+    });
+    input.addEventListener('focus',()=>document.body.classList.add('ais-fast-entry'));
+    input.addEventListener('blur',()=>setTimeout(()=>{
+      if(document.activeElement?.id!=='aisLen')document.body.classList.remove('ais-fast-entry');
+    },180));
+    if(!document.getElementById('aisQuickSaveBar')){
+      document.body.insertAdjacentHTML('beforeend',`<div class="aisQuickSaveBar" id="aisQuickSaveBar"><b>Guardar medida y cargar otra</b><button type="button" onclick="alAisQuickSave()">Guardar</button></div>`);
+    }
+  }
+  window.alAisQuickSave=function(){
+    if(typeof aisAddTramo==='function')aisAddTramo();
+    setTimeout(()=>{const input=document.getElementById('aisLen');if(input){input.focus();input.select();document.body.classList.add('ais-fast-entry');}},120);
+  };
+  const prevRenderAis=window.renderAislacionPage;
+  if(prevRenderAis){
+    window.renderAislacionPage=function(){
+      prevRenderAis();
+      setTimeout(()=>{alAisFillSectors();enhanceQuickMeasure();},80);
+    };
+    try{renderAislacionPage=window.renderAislacionPage}catch(e){}
+  }
+  const prevWorkspace=window.aisWorkspaceHTML;
+  if(prevWorkspace){
+    window.aisWorkspaceHTML=function(){
+      return prevWorkspace()
+        .replace('id="aisLen" class="aisQuickLen" type="number"', 'id="aisLen" class="aisQuickLen" type="number" enterkeyhint="done"')
+        .replace('Carga una longitud, agrega fotos si corresponde y guarda el tramo. El campo queda listo para seguir midiendo.', 'Cargá la medida y tocá Enter/Guardar para registrar y seguir con otra medida.');
+    };
+    try{aisWorkspaceHTML=window.aisWorkspaceHTML}catch(e){}
+  }
+  window.addEventListener('load',()=>setTimeout(()=>{alAisFillSectors();enhanceQuickMeasure();},200));
+})();
+</script>
+
+<script>
+/* Aislacion v6: selects estables y WhatsApp como copiar resumen. */
+(function(){
+  'use strict';
+  const DIAMETROS=['2"','3"','4"','6"','8"','10"','12"','14"','16"','18"','20"','24"'];
+  const ESPESORES=['1/2"','3/4"','1"','1 1/2"','2"','2 1/2"','3"','4"','5"','6"'];
+  const MATERIALES=['Lana Mineral','Poliuretano','Manta de Fibra cerámica'];
+
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function val(id){return document.getElementById(id)?.value || '';}
+  function obrasPermitidas(){
+    try{
+      const names=typeof userObras==='function'?userObras():[];
+      if(names.length)return names;
+    }catch(e){}
+    return ((window.db&&db.obras)||[]).filter(o=>o.activa!==false).map(o=>o.nombre).filter(Boolean);
+  }
+  function sectoresDe(nombre){
+    const obra=((window.db&&db.obras)||[]).find(o=>String(o.nombre)===String(nombre));
+    return [...new Set((obra?.sectores||[]).filter(Boolean))];
+  }
+  function opt(list,label,selected=''){
+    return `<option value="">${esc(label)}</option>`+list.map(x=>`<option value="${esc(x)}" ${String(x)===String(selected)?'selected':''}>${esc(x)}</option>`).join('');
+  }
+  window.alAisFillSectors=function(selected=''){
+    const sector=document.getElementById('aisSector');
+    if(!sector)return;
+    const keep=selected || sector.value || '';
+    const list=sectoresDe(val('aisObra'));
+    sector.innerHTML=opt(list,list.length?'Seleccionar sector':'Seleccione una obra primero',keep);
+  };
+  window.alAisObraChanged=function(){
+    window.alAisFillSectors('');
+  };
+
+  window.aisHomeHTML=function(){
+    const h=(window.aisState&&aisState.history)||[];
+    const active=aisState&&aisState.current?1:0;
+    const done=h.filter(r=>r.estado==='Finalizado').length;
+    const pending=h.filter(r=>r.estado==='Finalizado'&&String(r.syncStatus||'').toLowerCase()!=='sincronizado').length;
+    const fotos=h.reduce((n,r)=>n+(Array.isArray(r.fotos)?r.fotos.length:0),0);
+    return `<div class="aisTop"><div><h2>Control de Aislación</h2><p>Relevamientos por línea/equipo, fotos y cierre con legajo en Drive.</p></div><div class="actions"><button class="btn ghost" onclick="backToPlatforms()">Plataformas</button><button class="btn primary" onclick="aisStartForm()">+ Nuevo relevamiento</button></div></div>
+    <div class="aisStats aisOpsStats"><div class="aisStat"><span>En curso</span><b>${active}</b></div><div class="aisStat"><span>Finalizados</span><b>${done}</b></div><div class="aisStat"><span>Pendientes Drive</span><b>${pending}</b></div><div class="aisStat"><span>Fotos</span><b>${fotos}</b></div></div>
+    <div class="aisGrid aisHomeGrid"><div class="aisCard aisSetupPanel"><h3>Nuevo relevamiento</h3><div class="aisTaskCards"><div class="aisTask active" id="task-montaje" onclick="aisSelectTask('montaje')">Montaje<br><small>Aislación instalada</small></div><div class="aisTask des" id="task-desmontaje" onclick="aisSelectTask('desmontaje')">Desmontaje<br><small>Aislación retirada</small></div><div class="aisTask rep" id="task-reparacion" onclick="aisSelectTask('reparacion')">Reparación<br><small>Intervención parcial</small></div></div><input type="hidden" id="aisTask" value="montaje"><div class="modalGrid"><div class="field"><label>Obra</label><select id="aisObra" onchange="alAisObraChanged()">${opt(obrasPermitidas(),'Seleccionar obra')}</select></div><div class="field"><label>Sector</label><select id="aisSector"><option value="">Seleccione una obra primero</option></select></div><div class="field"><label>Línea / Equipo</label><input id="aisLinea" value="" placeholder="Ej: LT-101"></div><div class="field"><label>Nro. de isométrico</label><input id="aisIso" value="" placeholder="Ej: ISO-101"></div><div class="field"><label>Diámetro de cañería</label><select id="aisDiametro">${opt(DIAMETROS,'Seleccionar diámetro')}</select></div><div class="field"><label>Material</label><select id="aisMaterial">${opt(MATERIALES,'Seleccionar material')}</select></div><div class="field"><label>Espesor de aislación</label><select id="aisEspesor">${opt(ESPESORES,'Seleccionar espesor')}</select></div><div class="field"><label>Capas</label><input id="aisCapas" type="number" value="" placeholder="Ej: 2"></div><div class="field"><label>Tipo de chapa</label><select id="aisChapa"><option value="">Seleccionar chapa</option><option>Sin chapa</option><option>Aluminio</option><option>Galvanizado</option><option>Inoxidable</option><option>Otra</option></select></div></div><button class="btn primary" style="width:100%;padding:16px" onclick="aisStart()">Comenzar recorrido</button></div>
+    <div class="aisCard"><h3>Historial operativo</h3>${typeof aisHistoryCards==='function'?(h.length?aisHistoryCards(h):'<div class="empty">Todavía no hay relevamientos guardados.</div>'):'<div class="empty">Sin historial</div>'}</div></div>`;
+  };
+  try{aisHomeHTML=window.aisHomeHTML}catch(e){}
+
+  function resumenAis(r){
+    let s={metros:0,m2:0,tramos:0,acc:0,fotos:0};
+    try{if(typeof aisSummary==='function')s=aisSummary(r)}catch(e){}
+    return `Resumen de aislación
+
+Trabajo: ${r?.linea||'-'}
+Tipo: ${r?.tipo||'-'}
+Obra: ${r?.obra||'-'}
+Sector: ${r?.sector||'-'}
+Fecha: ${r?.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'-'}
+Metros: ${typeof fmtNum==='function'?fmtNum(s.metros||0):s.metros||0}
+m2 estimados: ${typeof fmtNum==='function'?fmtNum(s.m2||0):s.m2||0}
+Tramos: ${s.tramos||0}
+Accesorios: ${s.acc||0}
+Fotos: ${s.fotos||0}
+Estado: ${r?.syncStatus||r?.estado||'-'}`;
+  }
+  function resumenInforme(){
+    try{if(typeof aisLoad==='function')aisLoad()}catch(e){}
+    const rows=(window.aisState&&aisState.history)||[];
+    const total=rows.reduce((a,r)=>{
+      let s={metros:0,m2:0,fotos:0};
+      try{if(typeof aisSummary==='function')s=aisSummary(r)}catch(e){}
+      a.registros++;
+      a.metros+=Number(s.metros||0);
+      a.m2+=Number(s.m2||0);
+      a.fotos+=Number(s.fotos||0);
+      if(r.estado==='Finalizado')a.finalizados++;
+      if(r.drivePendiente||String(r.syncStatus||'').toLowerCase().includes('pendiente'))a.pendientes++;
+      return a;
+    },{registros:0,finalizados:0,pendientes:0,metros:0,m2:0,fotos:0});
+    return `Informe general de aislación
+
+Registros: ${total.registros}
+Finalizados: ${total.finalizados}
+Pendientes Drive: ${total.pendientes}
+Metros: ${typeof fmtNum==='function'?fmtNum(total.metros):total.metros}
+m2 estimados: ${typeof fmtNum==='function'?fmtNum(total.m2):total.m2}
+Fotos: ${total.fotos}`;
+  }
+  async function copyText(txt){
+    try{
+      await navigator.clipboard.writeText(txt);
+    }catch(e){
+      const ta=document.createElement('textarea');
+      ta.value=txt;ta.style.position='fixed';ta.style.left='-9999px';
+      document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');ta.remove();
+    }
+    if(typeof aisMiniToast==='function')aisMiniToast('Resumen copiado');
+    else if(typeof toast==='function')toast('Resumen copiado');
+    else alert('Resumen copiado');
+  }
+  window.aisWhatsApp=function(id=''){
+    const r=id?((aisState&&aisState.history)||[]).find(x=>String(x.id)===String(id)):(aisState&&aisState.current);
+    if(!r){if(typeof aisMiniToast==='function')aisMiniToast('No hay relevamiento para copiar');return}
+    copyText(resumenAis(r));
+  };
+  window.aisWhatsAppInforme=function(){copyText(resumenInforme())};
+  window.shareAisInformeWhatsApp=function(){copyText(resumenInforme())};
+  try{aisWhatsApp=window.aisWhatsApp;aisWhatsAppInforme=window.aisWhatsAppInforme;shareAisInformeWhatsApp=window.shareAisInformeWhatsApp}catch(e){}
+
+  const prevRender=window.renderAislacionPage;
+  if(prevRender){
+    window.renderAislacionPage=function(){
+      prevRender();
+      setTimeout(()=>window.alAisFillSectors(),120);
+    };
+    try{renderAislacionPage=window.renderAislacionPage}catch(e){}
+  }
+})();
+</script>
+
 </body>
 </html>
