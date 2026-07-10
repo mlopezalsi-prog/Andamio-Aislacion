@@ -4601,5 +4601,278 @@ Fotos: ${total.fotos}`;
 })();
 </script>
 
+<style id="al-ais-mobile-nav-v7">
+.aisMobileNav{
+  display:none;
+}
+@media(max-width:900px){
+  #aislacionPage .aisMain{
+    padding-bottom:96px!important;
+  }
+  .aisMobileNav{
+    display:grid;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    padding:8px 8px calc(env(safe-area-inset-bottom) + 8px);
+    background:rgba(255,255,255,.97);
+    border-top:1px solid #dfe8f3;
+    box-shadow:0 -10px 28px rgba(7,27,61,.10);
+    z-index:230;
+  }
+  .aisMobileNav button{
+    min-height:48px;
+    border:0;
+    border-radius:8px;
+    background:transparent;
+    color:#50627a;
+    font-size:11px;
+    font-weight:900;
+    display:grid;
+    place-items:center;
+    gap:2px;
+  }
+  .aisMobileNav button span{
+    display:block;
+    font-size:17px;
+    line-height:1;
+  }
+  .aisMobileNav button.active{
+    background:#eaf2ff;
+    color:#0756cf;
+  }
+}
+</style>
+
+<script>
+/* Aislacion v7: navegacion movil y sectores robustos. */
+(function(){
+  'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function clean(v){return String(v??'').trim();}
+  function opt(list,label,selected=''){
+    return `<option value="">${esc(label)}</option>`+list.map(x=>`<option value="${esc(x)}" ${String(x)===String(selected)?'selected':''}>${esc(x)}</option>`).join('');
+  }
+  function sectoresRobustos(obraNombre){
+    const obra=clean(obraNombre);
+    const out=[];
+    const push=v=>{v=clean(v);if(v&&!out.includes(v))out.push(v)};
+    try{
+      const cfg=((window.db&&db.obras)||[]).find(o=>String(o.nombre)===obra);
+      (cfg?.sectores||[]).forEach(push);
+    }catch(e){}
+    try{
+      (window.sheetCatalogs?.sectores||[]).forEach(s=>{
+        if(clean(s.planta||s.obra)===obra)push(s.sector);
+      });
+    }catch(e){}
+    try{
+      (db.andamios||[]).forEach(a=>{
+        if(clean(a.obra)===obra)push(a.sector);
+      });
+    }catch(e){}
+    return out.sort((a,b)=>a.localeCompare(b,'es'));
+  }
+  window.alAisFillSectors=function(selected=''){
+    const sector=document.getElementById('aisSector');
+    const obra=document.getElementById('aisObra');
+    if(!sector||!obra)return;
+    const keep=selected || sector.value || '';
+    const list=sectoresRobustos(obra.value);
+    sector.innerHTML=opt(list,list.length?'Seleccionar sector':'Sin sectores para esta obra',keep);
+  };
+  window.alAisObraChanged=function(){
+    window.alAisFillSectors('');
+  };
+
+  function ensureMobileNav(){
+    const page=document.getElementById('aislacionPage');
+    if(!page || document.getElementById('aisMobileNav'))return;
+    page.insertAdjacentHTML('beforeend',`<nav class="aisMobileNav" id="aisMobileNav">
+      <button type="button" data-ais-nav="control" onclick="alAisGo('control')"><span>🧱</span>Control</button>
+      <button type="button" data-ais-nav="historial" onclick="alAisGo('historial')"><span>📒</span>Historial</button>
+      <button type="button" data-ais-nav="informes" onclick="alAisGo('informes')"><span>📊</span>Informes</button>
+      <button type="button" data-ais-nav="plataformas" onclick="backToPlatforms()"><span>↩</span>Inicio</button>
+    </nav>`);
+  }
+  window.alAisSetMobileNav=function(view='control'){
+    ensureMobileNav();
+    document.querySelectorAll('#aisMobileNav button').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.aisNav===view);
+    });
+  };
+  window.alAisGo=function(view){
+    ensureMobileNav();
+    if(view==='historial'&&typeof aisShowHistory==='function'){aisShowHistory();alAisSetMobileNav('historial');return}
+    if(view==='informes'&&typeof aisShowInforme==='function'){aisShowInforme();alAisSetMobileNav('informes');return}
+    if(typeof renderAislacionPage==='function'){renderAislacionPage();alAisSetMobileNav('control');}
+  };
+
+  const prevHistory=window.aisShowHistory;
+  if(prevHistory){
+    window.aisShowHistory=function(){
+      prevHistory.apply(this,arguments);
+      setTimeout(()=>alAisSetMobileNav('historial'),30);
+    };
+    try{aisShowHistory=window.aisShowHistory}catch(e){}
+  }
+  const prevInforme=window.aisShowInforme;
+  if(prevInforme){
+    window.aisShowInforme=function(){
+      prevInforme.apply(this,arguments);
+      setTimeout(()=>alAisSetMobileNav('informes'),30);
+    };
+    try{aisShowInforme=window.aisShowInforme}catch(e){}
+  }
+  const prevRenderAis=window.renderAislacionPage;
+  if(prevRenderAis){
+    window.renderAislacionPage=function(){
+      prevRenderAis.apply(this,arguments);
+      setTimeout(()=>{
+        ensureMobileNav();
+        alAisSetMobileNav(window.aisState&&aisState.current?'control':'control');
+        window.alAisFillSectors();
+      },80);
+    };
+    try{renderAislacionPage=window.renderAislacionPage}catch(e){}
+  }
+  window.addEventListener('load',()=>setTimeout(()=>{ensureMobileNav();window.alAisFillSectors();alAisSetMobileNav('control');},250));
+})();
+</script>
+
+<script>
+/* Aislacion v8: sector sin placeholder seleccionable y vista estable en movil. */
+(function(){
+  'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function clean(v){return String(v??'').trim();}
+  function sectorOptions(list,selected=''){
+    const placeholder=list.length?'Seleccionar sector':'Sin sectores para esta obra';
+    return `<option value="" disabled ${selected?'':'selected'} hidden>${esc(placeholder)}</option>`+
+      list.map(x=>`<option value="${esc(x)}" ${String(x)===String(selected)?'selected':''}>${esc(x)}</option>`).join('');
+  }
+  function sectoresParaObra(obraNombre){
+    const obra=clean(obraNombre);
+    const out=[];
+    const add=v=>{v=clean(v);if(v&&!out.includes(v))out.push(v)};
+    try{
+      const cfg=((window.db&&db.obras)||[]).find(o=>clean(o.nombre)===obra);
+      (cfg?.sectores||[]).forEach(add);
+    }catch(e){}
+    try{
+      (window.sheetCatalogs?.sectores||[]).forEach(s=>{
+        if(clean(s.planta||s.obra)===obra)add(s.sector);
+      });
+    }catch(e){}
+    try{
+      (db.andamios||[]).forEach(a=>{
+        if(clean(a.obra)===obra)add(a.sector);
+      });
+    }catch(e){}
+    return out.sort((a,b)=>a.localeCompare(b,'es'));
+  }
+  window.alAisFillSectors=function(selected=''){
+    const obra=document.getElementById('aisObra');
+    const sector=document.getElementById('aisSector');
+    if(!obra||!sector)return;
+    const current=selected || (sector.value && sector.value!=='Seleccionar sector'?sector.value:'');
+    sector.innerHTML=sectorOptions(sectoresParaObra(obra.value),current);
+  };
+  window.alAisObraChanged=function(){window.alAisFillSectors('')};
+
+  window.__aisStableView=window.__aisStableView||'control';
+  let internal=false;
+  const showHistoryBase=window.aisShowHistory;
+  const showInformeBase=window.aisShowInforme;
+  const renderBase=window.renderAislacionPage;
+
+  window.aisShowHistory=function(){
+    window.__aisStableView='historial';
+    internal=true;
+    try{return showHistoryBase&&showHistoryBase.apply(this,arguments)}
+    finally{
+      internal=false;
+      setTimeout(()=>{if(typeof alAisSetMobileNav==='function')alAisSetMobileNav('historial')},30);
+    }
+  };
+  window.aisShowInforme=function(){
+    window.__aisStableView='informes';
+    internal=true;
+    try{return showInformeBase&&showInformeBase.apply(this,arguments)}
+    finally{
+      internal=false;
+      setTimeout(()=>{if(typeof alAisSetMobileNav==='function')alAisSetMobileNav('informes')},30);
+    }
+  };
+  window.alAisGo=function(view){
+    if(view==='historial')return window.aisShowHistory();
+    if(view==='informes')return window.aisShowInforme({noSheet:true});
+    if(view==='plataformas')return backToPlatforms();
+    window.__aisStableView='control';
+    internal=true;
+    try{renderBase&&renderBase()}
+    finally{
+      internal=false;
+      setTimeout(()=>{
+        window.alAisFillSectors();
+        if(typeof alAisSetMobileNav==='function')alAisSetMobileNav('control');
+      },60);
+    }
+  };
+  window.renderAislacionPage=function(){
+    if(!internal&&window.__aisStableView==='historial')return window.aisShowHistory();
+    if(!internal&&window.__aisStableView==='informes')return window.aisShowInforme({noSheet:true});
+    window.__aisStableView='control';
+    internal=true;
+    try{return renderBase&&renderBase.apply(this,arguments)}
+    finally{
+      internal=false;
+      setTimeout(()=>{
+        window.alAisFillSectors();
+        if(typeof alAisSetMobileNav==='function')alAisSetMobileNav('control');
+      },80);
+    }
+  };
+  try{aisShowHistory=window.aisShowHistory;aisShowInforme=window.aisShowInforme;renderAislacionPage=window.renderAislacionPage}catch(e){}
+})();
+</script>
+
+<script>
+/* Aislacion v9: sectores desde el mismo catalogo que Andamios. */
+(function(){
+  'use strict';
+  const CATALOG_KEY='al_andamios_catalogos_v286';
+  function clean(v){return String(v??'').trim();}
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function readCatalog(){
+    try{return JSON.parse(localStorage.getItem(CATALOG_KEY)||'{"sectores":[],"supervisores":[]}')||{sectores:[],supervisores:[]}}catch(e){return {sectores:[],supervisores:[]}}
+  }
+  function sectoresMismoCatalogoAndamios(obra){
+    const catalog=readCatalog();
+    const fromSheet=(catalog.sectores||[])
+      .filter(x=>clean(x.activo||'SI').toUpperCase()!=='NO' && clean(x.planta||x.obra)===obra)
+      .map(x=>clean(x.sector));
+    const fromDb=(((window.db&&db.obras)||[]).find(o=>clean(o.nombre)===obra)?.sectores)||[];
+    return [...new Set([...fromSheet,...fromDb].map(clean).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  }
+  function sectorOptions(list,selected=''){
+    return `<option value="" disabled ${selected?'':'selected'} hidden>Seleccionar sector</option>`+
+      list.map(x=>`<option value="${esc(x)}" ${String(x)===String(selected)?'selected':''}>${esc(x)}</option>`).join('');
+  }
+  window.alAisFillSectors=function(selected=''){
+    const obraEl=document.getElementById('aisObra');
+    const sectorEl=document.getElementById('aisSector');
+    if(!obraEl||!sectorEl)return;
+    const current=selected||'';
+    const list=sectoresMismoCatalogoAndamios(clean(obraEl.value));
+    sectorEl.innerHTML=sectorOptions(list,current);
+  };
+  window.alAisObraChanged=function(){window.alAisFillSectors('')};
+})();
+</script>
+
 </body>
 </html>
