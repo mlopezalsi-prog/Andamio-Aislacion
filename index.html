@@ -4975,5 +4975,262 @@ Fotos: ${total.fotos}`;
 })();
 </script>
 
+<script>
+/* Navegacion v11: boton volver nativo del celular sin salir de la app. */
+(function(){
+  'use strict';
+  const STACK_KEY='al_native_back_stack_v11';
+  let internal=false;
+
+  function visible(id){
+    const el=document.getElementById(id);
+    return !!(el&&!el.classList.contains('hidden'));
+  }
+  function loadStack(){
+    try{return JSON.parse(sessionStorage.getItem(STACK_KEY)||'[]')}catch(e){return []}
+  }
+  function saveStack(stack){
+    try{sessionStorage.setItem(STACK_KEY,JSON.stringify(stack.slice(-60)))}catch(e){}
+  }
+  function top(stack){return stack[stack.length-1]||null}
+  function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+  function currentScreen(){
+    const sheet=document.getElementById('aisSheet');
+    if(sheet&&sheet.classList.contains('show'))return {kind:'aisSheet'};
+    const modal=[...document.querySelectorAll('.modal.show')].pop();
+    if(modal)return {kind:'modal',id:modal.id||''};
+    if(visible('aislacionPage'))return {kind:'ais',view:window.__aisStableView||'control'};
+    if(visible('appPage')){
+      const active=document.querySelector('[data-view].active');
+      return {kind:'andamios',view:(active&&active.dataset.view)||((location.hash||'').replace('#/',''))||'andamios'};
+    }
+    if(visible('platformPage'))return {kind:'platform'};
+    return {kind:'login'};
+  }
+  function seed(){
+    const stack=loadStack();
+    if(!stack.length){
+      stack.push(currentScreen());
+      saveStack(stack);
+      try{
+        history.replaceState(Object.assign({alManaged:true},top(stack)),'',location.href);
+        history.pushState(Object.assign({alManaged:true,guard:true},top(stack)),'',location.href);
+      }catch(e){}
+    }
+  }
+  function pushScreen(screen){
+    if(internal||!screen||screen.kind==='login')return;
+    const stack=loadStack();
+    if(!same(top(stack),screen)){
+      stack.push(screen);
+      saveStack(stack);
+      try{history.pushState(Object.assign({alManaged:true},screen),'',location.href)}catch(e){}
+    }
+  }
+  function popVisualTop(){
+    const sheet=document.getElementById('aisSheet');
+    if(sheet&&sheet.classList.contains('show')){
+      if(typeof aisCloseSheet==='function')aisCloseSheet();else sheet.classList.remove('show');
+      return true;
+    }
+    const modal=[...document.querySelectorAll('.modal.show')].pop();
+    if(modal){
+      if(typeof closeModal==='function')closeModal(modal.id);else modal.classList.remove('show');
+      return true;
+    }
+    return false;
+  }
+  function showPlatform(){
+    ['loginPage','appPage','aislacionPage'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    document.getElementById('platformPage')?.classList.remove('hidden');
+  }
+  function showAislacion(view){
+    document.getElementById('loginPage')?.classList.add('hidden');
+    document.getElementById('platformPage')?.classList.add('hidden');
+    document.getElementById('appPage')?.classList.add('hidden');
+    document.getElementById('aislacionPage')?.classList.remove('hidden');
+    if(view==='historial'&&typeof aisShowHistory==='function')return aisShowHistory();
+    if(view==='informes'&&typeof aisShowInforme==='function')return aisShowInforme({noSheet:true});
+    window.__aisStableView='control';
+    if(typeof renderAislacionPage==='function')renderAislacionPage();
+    if(typeof alAisSetMobileNav==='function')setTimeout(()=>alAisSetMobileNav('control'),40);
+  }
+  function showAndamios(view){
+    document.getElementById('loginPage')?.classList.add('hidden');
+    document.getElementById('platformPage')?.classList.add('hidden');
+    document.getElementById('aislacionPage')?.classList.add('hidden');
+    document.getElementById('appPage')?.classList.remove('hidden');
+    const target=view||'andamios';
+    const loader=document.getElementById('pageLoader');
+    if(loader)loader.classList.add('show');
+    document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
+    document.getElementById('view-'+target)?.classList.remove('hidden');
+    document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===target));
+    if(typeof renderAll==='function')renderAll();
+    setTimeout(()=>{if(loader)loader.classList.remove('show')},180);
+  }
+  function applyScreen(screen){
+    if(!screen||!currentUser){
+      showPlatform();
+      return;
+    }
+    internal=true;
+    try{
+      popVisualTop();
+      if(screen.kind==='platform')showPlatform();
+      else if(screen.kind==='ais')showAislacion(screen.view);
+      else if(screen.kind==='andamios')showAndamios(screen.view);
+      else if(screen.kind==='detail'){
+        showAndamios('andamios');
+        setTimeout(()=>{internal=true;try{openDetail(screen.id,screen.tab||'general')}finally{internal=false}},80);
+      }else showPlatform();
+    }finally{
+      setTimeout(()=>{internal=false},120);
+    }
+  }
+  function backOne(ev){
+    if(!currentUser)return;
+    if(ev){
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    }
+    seed();
+    const stack=loadStack();
+    if(popVisualTop()){
+      stack.pop();
+      saveStack(stack.length?stack:[{kind:'platform'}]);
+      return;
+    }
+    stack.pop();
+    const prev=top(stack)||{kind:'platform'};
+    saveStack(stack.length?stack:[prev]);
+    applyScreen(prev);
+    if(prev.kind==='platform'){
+      try{history.pushState(Object.assign({alManaged:true},prev),'',location.href)}catch(e){}
+    }
+  }
+
+  const baseShowView=window.showView;
+  if(baseShowView){
+    window.showView=function(v){
+      const result=baseShowView.apply(this,arguments);
+      pushScreen({kind:'andamios',view:v||'andamios'});
+      return result;
+    };
+    try{showView=window.showView}catch(e){}
+  }
+  const baseEnter=window.enterPlatform;
+  if(baseEnter){
+    window.enterPlatform=function(platform){
+      const result=baseEnter.apply(this,arguments);
+      setTimeout(()=>pushScreen(platform==='aislacion'?{kind:'ais',view:'control'}:{kind:'andamios',view:'andamios'}),120);
+      return result;
+    };
+    try{enterPlatform=window.enterPlatform}catch(e){}
+  }
+  const baseBackPlatforms=window.backToPlatforms;
+  if(baseBackPlatforms){
+    window.backToPlatforms=function(){
+      const result=baseBackPlatforms.apply(this,arguments);
+      pushScreen({kind:'platform'});
+      return result;
+    };
+    try{backToPlatforms=window.backToPlatforms}catch(e){}
+  }
+  const baseOpenDetail=window.openDetail;
+  if(baseOpenDetail){
+    window.openDetail=function(id,tab){
+      internal=true;
+      let result;
+      try{result=baseOpenDetail.apply(this,arguments)}
+      finally{internal=false}
+      pushScreen({kind:'detail',id:id,tab:tab||(typeof currentDetailTab!=='undefined'?currentDetailTab:'general')});
+      return result;
+    };
+    try{openDetail=window.openDetail}catch(e){}
+  }
+  const baseOpenModal=window.openModal;
+  if(baseOpenModal){
+    window.openModal=function(id){
+      const result=baseOpenModal.apply(this,arguments);
+      pushScreen({kind:'modal',id:id});
+      return result;
+    };
+    try{openModal=window.openModal}catch(e){}
+  }
+  const baseCloseModal=window.closeModal;
+  if(baseCloseModal){
+    window.closeModal=function(id){
+      const result=baseCloseModal.apply(this,arguments);
+      const stack=loadStack();
+      if((top(stack)?.kind==='modal'&&top(stack)?.id===id)||(id==='detailModal'&&top(stack)?.kind==='detail')){
+        stack.pop();
+        saveStack(stack);
+      }
+      return result;
+    };
+    try{closeModal=window.closeModal}catch(e){}
+  }
+  const baseAisHistory=window.aisShowHistory;
+  if(baseAisHistory){
+    window.aisShowHistory=function(){
+      const result=baseAisHistory.apply(this,arguments);
+      pushScreen({kind:'ais',view:'historial'});
+      return result;
+    };
+    try{aisShowHistory=window.aisShowHistory}catch(e){}
+  }
+  const baseAisInforme=window.aisShowInforme;
+  if(baseAisInforme){
+    window.aisShowInforme=function(){
+      const result=baseAisInforme.apply(this,arguments);
+      pushScreen({kind:'ais',view:'informes'});
+      return result;
+    };
+    try{aisShowInforme=window.aisShowInforme}catch(e){}
+  }
+  const baseAisGo=window.alAisGo;
+  if(baseAisGo){
+    window.alAisGo=function(view){
+      const result=baseAisGo.apply(this,arguments);
+      if(view==='plataformas')pushScreen({kind:'platform'});
+      else pushScreen({kind:'ais',view:view||'control'});
+      return result;
+    };
+    try{alAisGo=window.alAisGo}catch(e){}
+  }
+  const baseAisSheet=window.aisSheet;
+  if(baseAisSheet){
+    window.aisSheet=function(){
+      const result=baseAisSheet.apply(this,arguments);
+      pushScreen({kind:'aisSheet'});
+      return result;
+    };
+    try{aisSheet=window.aisSheet}catch(e){}
+  }
+  const baseAisCloseSheet=window.aisCloseSheet;
+  if(baseAisCloseSheet){
+    window.aisCloseSheet=function(){
+      const result=baseAisCloseSheet.apply(this,arguments);
+      const stack=loadStack();
+      if(top(stack)?.kind==='aisSheet'){stack.pop();saveStack(stack);}
+      return result;
+    };
+    try{aisCloseSheet=window.aisCloseSheet}catch(e){}
+  }
+  const baseLogout=window.logout;
+  if(baseLogout){
+    window.logout=function(){
+      try{sessionStorage.removeItem(STACK_KEY)}catch(e){}
+      return baseLogout.apply(this,arguments);
+    };
+    try{logout=window.logout}catch(e){}
+  }
+
+  window.addEventListener('popstate',backOne,true);
+  window.addEventListener('load',()=>setTimeout(seed,700));
+})();
+</script>
+
 </body>
 </html>
